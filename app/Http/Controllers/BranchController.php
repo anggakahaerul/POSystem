@@ -64,9 +64,11 @@ class BranchController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['code'] = strtoupper($validated['code']);
 
-        // Handle logo upload
+        // Handle logo upload - save as base64
         if ($request->hasFile('logo')) {
-            $validated['logo'] = $request->file('logo')->store('logos', 'public');
+            $file = $request->file('logo');
+            $validated['logo'] = $file->getClientOriginalName();
+            $validated['logo_base64'] = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
         }
 
         Branch::create($validated);
@@ -103,13 +105,11 @@ class BranchController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['code'] = strtoupper($validated['code']);
 
-        // Handle logo upload
+        // Handle logo upload - save as base64
         if ($request->hasFile('logo')) {
-            // Delete old logo if exists
-            if ($branch->logo && \Storage::disk('public')->exists($branch->logo)) {
-                \Storage::disk('public')->delete($branch->logo);
-            }
-            $validated['logo'] = $request->file('logo')->store('logos', 'public');
+            $file = $request->file('logo');
+            $validated['logo'] = $file->getClientOriginalName();
+            $validated['logo_base64'] = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
         }
 
         $branch->update($validated);

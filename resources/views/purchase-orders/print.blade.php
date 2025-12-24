@@ -398,16 +398,16 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            @if ($po->branch && $po->branch->logo)
+            @if ($po->branch && $po->branch->logo_base64)
+                <img src="{{ $po->branch->logo_base64 }}" alt="Logo" class="header-logo">
+            @elseif ($po->branch && $po->branch->logo)
                 @php
                     $logoFile = storage_path('app/public/' . $po->branch->logo);
                     if (isset($isPdf) && $isPdf && file_exists($logoFile)) {
-                        // For PDF: use base64 encoded image
                         $logoType = pathinfo($logoFile, PATHINFO_EXTENSION);
                         $logoData = base64_encode(file_get_contents($logoFile));
                         $logoPath = 'data:image/' . $logoType . ';base64,' . $logoData;
                     } else {
-                        // For browser preview: use asset URL
                         $logoPath = asset('storage/' . $po->branch->logo);
                     }
                 @endphp

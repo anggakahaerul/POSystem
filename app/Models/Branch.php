@@ -15,6 +15,7 @@ class Branch extends Model
         'email',
         'npwp',
         'logo',
+        'logo_base64',
         'footer_note',
         'is_active',
     ];
