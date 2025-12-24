@@ -404,87 +404,160 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Submit Signature Modal -->
-                <div class="modal fade" id="submitModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <form action="{{ route('purchase-orders.submit', $po->id) }}" method="POST"
-                                id="form-submit">
-                                @csrf
-                                <input type="hidden" name="creator_signature" id="creator_signature_input">
-                                <div class="modal-header bg-info text-white">
-                                    <h5 class="modal-title"><i class="fas fa-signature mr-2"></i>Tanda Tangan Pembuat</h5>
-                                    <button type="button" class="close text-white" data-dismiss="modal">
-                                        <span>&times;</span>
+    <!-- Submit Signature Modal -->
+    <div class="modal fade" id="submitModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('purchase-orders.submit', $po->id) }}" method="POST" id="form-submit">
+                    @csrf
+                    <input type="hidden" name="creator_signature" id="creator_signature_input">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title"><i class="fas fa-signature mr-2"></i>Tanda Tangan Pembuat</h5>
+                        <button type="button" class="close text-white" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Silakan tanda tangan untuk submit PO <strong>{{ $po->po_number }}</strong>:</p>
+                        
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-toggle="tab" href="#creator-draw-tab">
+                                    <i class="fas fa-pen mr-1"></i> Gambar
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-toggle="tab" href="#creator-upload-tab">
+                                    <i class="fas fa-upload mr-1"></i> Upload
+                                </a>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content">
+                            <!-- Draw Tab -->
+                            <div class="tab-pane fade show active" id="creator-draw-tab">
+                                <div class="signature-pad-container" style="border: 2px solid #ccc; border-radius: 5px;">
+                                    <canvas id="creator-signature-pad" style="width: 100%; height: 200px;"></canvas>
+                                </div>
+                                <div class="mt-2 text-right">
+                                    <button type="button" class="btn btn-sm btn-secondary" id="clear-creator-signature">
+                                        <i class="fas fa-eraser mr-1"></i> Hapus
                                     </button>
                                 </div>
-                                <div class="modal-body">
-                                    <p class="mb-3">Silakan tanda tangan di bawah ini untuk submit PO
-                                        <strong>{{ $po->po_number }}</strong>:
-                                    </p>
-                                    <div class="signature-pad-container"
-                                        style="border: 2px solid #ccc; border-radius: 5px;">
-                                        <canvas id="creator-signature-pad" style="width: 100%; height: 200px;"></canvas>
+                            </div>
+                            
+                            <!-- Upload Tab -->
+                            <div class="tab-pane fade" id="creator-upload-tab">
+                                <div class="form-group">
+                                    <label>Upload Gambar Tanda Tangan</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="creator-signature-file" accept="image/*">
+                                        <label class="custom-file-label" for="creator-signature-file">Pilih file...</label>
                                     </div>
-                                    <div class="mt-2 text-right">
-                                        <button type="button" class="btn btn-sm btn-secondary"
-                                            id="clear-creator-signature">
-                                            <i class="fas fa-eraser mr-1"></i> Hapus
+                                    <small class="form-text text-muted">Format: JPG, PNG, GIF. Max 2MB</small>
+                                </div>
+                                <div id="creator-upload-preview" class="text-center mt-3" style="display: none;">
+                                    <img id="creator-upload-img" src="" alt="Preview" style="max-height: 150px; border: 1px solid #ddd; padding: 5px;">
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-danger" id="clear-creator-upload">
+                                            <i class="fas fa-times mr-1"></i> Hapus
                                         </button>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn btn-info" id="btn-submit-with-signature">
-                                        <i class="fas fa-paper-plane mr-1"></i> Submit PO
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-info" id="btn-submit-with-signature">
+                            <i class="fas fa-paper-plane mr-1"></i> Submit PO
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-                <!-- Approve Signature Modal -->
-                <div class="modal fade" id="approveModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <form action="{{ route('purchase-orders.approve', $po->id) }}" method="POST"
-                                id="form-approve">
-                                @csrf
-                                <input type="hidden" name="approver_signature" id="approver_signature_input">
-                                <div class="modal-header bg-success text-white">
-                                    <h5 class="modal-title"><i class="fas fa-signature mr-2"></i>Tanda Tangan Approver
-                                    </h5>
-                                    <button type="button" class="close text-white" data-dismiss="modal">
-                                        <span>&times;</span>
+    <!-- Approve Signature Modal -->
+    <div class="modal fade" id="approveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('purchase-orders.approve', $po->id) }}" method="POST" id="form-approve">
+                    @csrf
+                    <input type="hidden" name="approver_signature" id="approver_signature_input">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-signature mr-2"></i>Tanda Tangan Approver</h5>
+                        <button type="button" class="close text-white" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Silakan tanda tangan untuk approve PO <strong>{{ $po->po_number }}</strong>:</p>
+                        
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-toggle="tab" href="#approver-draw-tab">
+                                    <i class="fas fa-pen mr-1"></i> Gambar
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-toggle="tab" href="#approver-upload-tab">
+                                    <i class="fas fa-upload mr-1"></i> Upload
+                                </a>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content">
+                            <!-- Draw Tab -->
+                            <div class="tab-pane fade show active" id="approver-draw-tab">
+                                <div class="signature-pad-container" style="border: 2px solid #ccc; border-radius: 5px;">
+                                    <canvas id="approver-signature-pad" style="width: 100%; height: 200px;"></canvas>
+                                </div>
+                                <div class="mt-2 text-right">
+                                    <button type="button" class="btn btn-sm btn-secondary" id="clear-approver-signature">
+                                        <i class="fas fa-eraser mr-1"></i> Hapus
                                     </button>
                                 </div>
-                                <div class="modal-body">
-                                    <p class="mb-3">Silakan tanda tangan di bawah ini untuk approve PO
-                                        <strong>{{ $po->po_number }}</strong>:
-                                    </p>
-                                    <div class="signature-pad-container"
-                                        style="border: 2px solid #ccc; border-radius: 5px;">
-                                        <canvas id="approver-signature-pad" style="width: 100%; height: 200px;"></canvas>
+                            </div>
+                            
+                            <!-- Upload Tab -->
+                            <div class="tab-pane fade" id="approver-upload-tab">
+                                <div class="form-group">
+                                    <label>Upload Gambar Tanda Tangan</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="approver-signature-file" accept="image/*">
+                                        <label class="custom-file-label" for="approver-signature-file">Pilih file...</label>
                                     </div>
-                                    <div class="mt-2 text-right">
-                                        <button type="button" class="btn btn-sm btn-secondary"
-                                            id="clear-approver-signature">
-                                            <i class="fas fa-eraser mr-1"></i> Hapus
+                                    <small class="form-text text-muted">Format: JPG, PNG, GIF. Max 2MB</small>
+                                </div>
+                                <div id="approver-upload-preview" class="text-center mt-3" style="display: none;">
+                                    <img id="approver-upload-img" src="" alt="Preview" style="max-height: 150px; border: 1px solid #ddd; padding: 5px;">
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-danger" id="clear-approver-upload">
+                                            <i class="fas fa-times mr-1"></i> Hapus
                                         </button>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn btn-success" id="btn-approve-with-signature">
-                                        <i class="fas fa-check mr-1"></i> Approve PO
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success" id="btn-approve-with-signature">
+                            <i class="fas fa-check mr-1"></i> Approve PO
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
                 <!-- Reject Modal -->
                 <div class="modal fade" id="rejectModal" tabindex="-1">
@@ -563,9 +636,12 @@
                         </div>
                     </div>
                 </div>
-            @endsection
+            </div>
+        </div>
+    </div>
+@endsection
 
-            @push('scripts')
+@push('scripts')
                 <script>
                     $(document).ready(function() {
                         // Submit PO with SweetAlert
@@ -701,7 +777,7 @@
                             }
                         });
 
-                        // Clear buttons
+                        // Clear canvas buttons
                         $('#clear-creator-signature').on('click', function() {
                             if (creatorSignaturePad) creatorSignaturePad.clear();
                         });
@@ -710,39 +786,156 @@
                             if (approverSignaturePad) approverSignaturePad.clear();
                         });
 
-                        // Submit form with signature
-                        $('#form-submit').on('submit', function(e) {
-                            if (creatorSignaturePad && creatorSignaturePad.isEmpty()) {
-                                e.preventDefault();
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Tanda Tangan Diperlukan',
-                                    text: 'Silakan tanda tangan terlebih dahulu sebelum submit.'
+                        // File upload variables
+                        var creatorUploadData = null;
+                        var approverUploadData = null;
+
+                        // Function to resize image
+                        function resizeImage(file, maxWidth, maxHeight, callback) {
+                            var reader = new FileReader();
+                            reader.onload = function(event) {
+                                var img = new Image();
+                                img.onload = function() {
+                                    var canvas = document.createElement('canvas');
+                                    var width = img.width;
+                                    var height = img.height;
+
+                                    // Calculate new dimensions
+                                    if (width > height) {
+                                        if (width > maxWidth) {
+                                            height = Math.round(height * maxWidth / width);
+                                            width = maxWidth;
+                                        }
+                                    } else {
+                                        if (height > maxHeight) {
+                                            width = Math.round(width * maxHeight / height);
+                                            height = maxHeight;
+                                        }
+                                    }
+
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    var ctx = canvas.getContext('2d');
+                                    ctx.fillStyle = '#FFFFFF';
+                                    ctx.fillRect(0, 0, width, height);
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    
+                                    // Convert to base64 PNG
+                                    callback(canvas.toDataURL('image/png', 0.8));
+                                };
+                                img.src = event.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        }
+
+                        // Creator file upload with resize
+                        $('#creator-signature-file').on('change', function(e) {
+                            var file = e.target.files[0];
+                            var input = $(this);
+                            if (file) {
+                                if (file.size > 2 * 1024 * 1024) {
+                                    Swal.fire('Error', 'File terlalu besar. Max 2MB.', 'error');
+                                    return;
+                                }
+                                resizeImage(file, 300, 150, function(resizedData) {
+                                    creatorUploadData = resizedData;
+                                    $('#creator-upload-img').attr('src', creatorUploadData);
+                                    $('#creator-upload-preview').show();
                                 });
-                                return false;
-                            }
-                            if (creatorSignaturePad) {
-                                $('#creator_signature_input').val(creatorSignaturePad.toDataURL('image/png'));
+                                input.next('.custom-file-label').text(file.name);
                             }
                         });
 
-                        // Approve form with signature
-                        $('#form-approve').on('submit', function(e) {
-                            if (approverSignaturePad && approverSignaturePad.isEmpty()) {
+                        // Approver file upload with resize
+                        $('#approver-signature-file').on('change', function(e) {
+                            var file = e.target.files[0];
+                            var input = $(this);
+                            if (file) {
+                                if (file.size > 2 * 1024 * 1024) {
+                                    Swal.fire('Error', 'File terlalu besar. Max 2MB.', 'error');
+                                    return;
+                                }
+                                resizeImage(file, 300, 150, function(resizedData) {
+                                    approverUploadData = resizedData;
+                                    $('#approver-upload-img').attr('src', approverUploadData);
+                                    $('#approver-upload-preview').show();
+                                });
+                                input.next('.custom-file-label').text(file.name);
+                            }
+                        });
+
+                        // Clear upload buttons
+                        $('#clear-creator-upload').on('click', function() {
+                            creatorUploadData = null;
+                            $('#creator-signature-file').val('');
+                            $('#creator-signature-file').next('.custom-file-label').text('Pilih file...');
+                            $('#creator-upload-preview').hide();
+                        });
+
+                        $('#clear-approver-upload').on('click', function() {
+                            approverUploadData = null;
+                            $('#approver-signature-file').val('');
+                            $('#approver-signature-file').next('.custom-file-label').text('Pilih file...');
+                            $('#approver-upload-preview').hide();
+                        });
+
+                        // Submit form with signature (canvas or upload)
+                        $('#form-submit').on('submit', function(e) {
+                            var activeTab = $('#submitModal .tab-pane.active').attr('id');
+                            var hasSignature = false;
+
+                            if (activeTab === 'creator-draw-tab') {
+                                if (creatorSignaturePad && !creatorSignaturePad.isEmpty()) {
+                                    $('#creator_signature_input').val(creatorSignaturePad.toDataURL('image/png'));
+                                    hasSignature = true;
+                                }
+                            } else if (activeTab === 'creator-upload-tab') {
+                                if (creatorUploadData) {
+                                    $('#creator_signature_input').val(creatorUploadData);
+                                    hasSignature = true;
+                                }
+                            }
+
+                            if (!hasSignature) {
                                 e.preventDefault();
                                 Swal.fire({
                                     icon: 'warning',
                                     title: 'Tanda Tangan Diperlukan',
-                                    text: 'Silakan tanda tangan terlebih dahulu sebelum approve.'
+                                    text: 'Silakan gambar atau upload tanda tangan terlebih dahulu.'
                                 });
                                 return false;
                             }
-                            if (approverSignaturePad) {
-                                $('#approver_signature_input').val(approverSignaturePad.toDataURL('image/png'));
+                        });
+
+                        // Approve form with signature (canvas or upload)
+                        $('#form-approve').on('submit', function(e) {
+                            var activeTab = $('#approveModal .tab-pane.active').attr('id');
+                            var hasSignature = false;
+
+                            if (activeTab === 'approver-draw-tab') {
+                                if (approverSignaturePad && !approverSignaturePad.isEmpty()) {
+                                    $('#approver_signature_input').val(approverSignaturePad.toDataURL('image/png'));
+                                    hasSignature = true;
+                                }
+                            } else if (activeTab === 'approver-upload-tab') {
+                                if (approverUploadData) {
+                                    $('#approver_signature_input').val(approverUploadData);
+                                    hasSignature = true;
+                                }
+                            }
+
+                            if (!hasSignature) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Tanda Tangan Diperlukan',
+                                    text: 'Silakan gambar atau upload tanda tangan terlebih dahulu.'
+                                });
+                                return false;
                             }
                         });
                     });
                 </script>
                 <!-- SignaturePad Library -->
                 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
-            @endpush
+@endpush
