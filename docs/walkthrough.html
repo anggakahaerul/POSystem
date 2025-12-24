@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel 11 PO System - Walkthrough Documentation</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --info: #17a2b8;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --dark: #343a40;
+            --light: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h2 .icon {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .card h3 {
+            color: var(--dark);
+            margin: 20px 0 10px;
+        }
+        
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+        
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--secondary);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        tr:hover {
+            background: #e9ecef;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .badge-success { background: var(--success); }
+        .badge-warning { background: var(--warning); color: #333; }
+        .badge-info { background: var(--info); }
+        .badge-primary { background: var(--primary); }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 10px 0;
+            padding-left: 35px;
+            position: relative;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .checklist li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            width: 25px;
+            height: 25px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .checklist li.pending::before {
+            content: "○";
+            background: #ddd;
+            color: #666;
+        }
+        
+        .tree {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .tree-item {
+            padding: 5px 0;
+        }
+        
+        .tree-folder {
+            color: var(--info);
+            font-weight: bold;
+        }
+        
+        .tree-file {
+            color: var(--dark);
+        }
+        
+        .tree-comment {
+            color: #718096;
+            font-style: italic;
+        }
+        
+        .workflow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .workflow-step {
+            padding: 15px 25px;
+            border-radius: 30px;
+            color: white;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .workflow-arrow {
+            font-size: 24px;
+            color: #666;
+        }
+        
+        .step-draft { background: #6c757d; }
+        .step-pending { background: var(--warning); color: #333; }
+        .step-approved { background: var(--success); }
+        .step-rejected { background: var(--danger); }
+        .step-print { background: var(--info); }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .feature-item h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid var(--info);
+        }
+        
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        @media print {
+            .print-btn { display: none; }
+            body { background: white; }
+            .card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 Laravel 11 Purchase Order System</h1>
+            <p>Dokumentasi lengkap implementasi sistem PO dengan AdminLTE 3 dan komponen dinamis</p>
+        </header>
+
+        <!-- Overview -->
+        <div class="card">
+            <h2><span class="icon">📋</span> Overview</h2>
+            <p>Sistem Purchase Order berbasis <strong>Laravel 11</strong> dengan template <strong>AdminLTE 3</strong> yang terintegrasi secara lokal. Fitur utama meliputi manajemen master data, pembuatan PO dinamis dengan AJAX, dan workflow approval multi-level.</p>
+            
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h4>🔧 Dynamic Components</h4>
+                    <p>Form builder, DataTable, dan CRUD templates yang reusable</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🔔 SweetAlert</h4>
+                    <p>Notifikasi toast untuk sukses, error, dan konfirmasi</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📝 PO Workflow</h4>
+                    <p>Draft → Pending → Approved/Rejected</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🖨️ PDF Ready</h4>
+                    <p>Cetak PO dengan layout profesional</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Structure -->
+        <div class="card">
+            <h2><span class="icon">📁</span> Project Structure</h2>
+            <div class="tree">
+                <div class="tree-item"><span class="tree-folder">invoices/</span></div>
+                <div class="tree-item">├── <span class="tree-folder">app/</span></div>
+                <div class="tree-item">│   ├── <span class="tree-folder">Http/Controllers/</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">Auth/AuthController.php</span> <span class="tree-comment"># Login, Register, Logout</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">CategoryController.php</span> <span class="tree-comment"># CRUD Kategori</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">ProductController.php</span> <span class="tree-comment"># CRUD Produk + API</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">VendorController.php</span> <span class="tree-comment"># CRUD Vendor</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">PurchaseOrderController.php</span> <span class="tree-comment"># CRUD PO + Workflow</span></div>
+                <div class="tree-item">│   │   ├── <span class="tree-file">DashboardController.php</span> <span class="tree-comment"># Dashboard stats</span></div>
+                <div class="tree-item">│   │   └── <span class="tree-file">UserController.php</span> <span class="tree-comment"># User management</span></div>
+                <div class="tree-item">│   └── <span class="tree-folder">Models/</span></div>
+                <div class="tree-item">│       ├── <span class="tree-file">Category.php</span> <span class="tree-comment"># Auto-slug generation</span></div>
+                <div class="tree-item">│       ├── <span class="tree-file">Product.php</span> <span class="tree-comment"># SKU generation</span></div>
+                <div class="tree-item">│       ├── <span class="tree-file">Vendor.php</span> <span class="tree-comment"># Code generation</span></div>
+                <div class="tree-item">│       ├── <span class="tree-file">PurchaseOrder.php</span> <span class="tree-comment"># Workflow logic</span></div>
+                <div class="tree-item">│       └── <span class="tree-file">PurchaseOrderDetail.php</span> <span class="tree-comment"># Auto subtotal</span></div>
+                <div class="tree-item">├── <span class="tree-folder">resources/views/</span></div>
+                <div class="tree-item">│   ├── <span class="tree-folder">layouts/</span> <span class="tree-comment"># app, auth, crud templates</span></div>
+                <div class="tree-item">│   ├── <span class="tree-folder">components/</span> <span class="tree-comment"># form, datatable, action-buttons</span></div>
+                <div class="tree-item">│   └── <span class="tree-folder">purchase-orders/</span> <span class="tree-comment"># Full PO views</span></div>
+                <div class="tree-item">└── <span class="tree-folder">database/</span></div>
+                <div class="tree-item">    ├── <span class="tree-folder">migrations/</span> <span class="tree-comment"># 5 new migrations</span></div>
+                <div class="tree-item">    └── <span class="tree-file">seeders/DatabaseSeeder.php</span> <span class="tree-comment"># Sample data</span></div>
+            </div>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="card">
+            <h2><span class="icon">🚀</span> Setup Instructions</h2>
+            
+            <h3>1. Copy Environment File</h3>
+            <pre>copy .env.example .env</pre>
+            
+            <h3>2. Generate App Key</h3>
+            <pre>php artisan key:generate</pre>
+            
+            <h3>3. Create MySQL Database</h3>
+            <p>Buat database <code>invoices</code> di MySQL/phpMyAdmin, atau jalankan:</p>
+            <pre>CREATE DATABASE invoices CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</pre>
+            
+            <h3>4. Run Migrations</h3>
+            <pre>php artisan migrate</pre>
+            
+            <h3>5. Seed Database</h3>
+            <pre>php artisan db:seed</pre>
+            
+            <h3>6. Access Application</h3>
+            <pre>http://localhost/invoices</pre>
+        </div>
+
+        <!-- Login Credentials -->
+        <div class="card">
+            <h2><span class="icon">🔑</span> Login Credentials</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Email</th>
+                        <th>Password</th>
+                        <th>Akses</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-primary">Admin</span></td>
+                        <td>admin@example.com</td>
+                        <td>password</td>
+                        <td>Full access</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">Manager</span></td>
+                        <td>manager@example.com</td>
+                        <td>password</td>
+                        <td>Approve/Reject PO</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-info">Purchasing</span></td>
+                        <td>purchasing@example.com</td>
+                        <td>password</td>
+                        <td>Create & Submit PO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PO Workflow -->
+        <div class="card">
+            <h2><span class="icon">🔄</span> Purchase Order Workflow</h2>
+            <div class="workflow">
+                <div class="workflow-step step-draft">📝 Draft</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step step-pending">⏳ Pending</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step step-approved">✓ Approved</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step step-print">🖨️ Print PDF</div>
+            </div>
+            <div class="workflow" style="margin-top: 10px;">
+                <div class="workflow-step step-pending">⏳ Pending</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step step-rejected">✗ Rejected</div>
+            </div>
+            
+            <h3>Workflow Steps:</h3>
+            <ul class="checklist">
+                <li><strong>Create PO</strong> - Purchasing membuat PO dengan status Draft</li>
+                <li><strong>Submit</strong> - PO dikirim untuk approval (status: Pending)</li>
+                <li><strong>Approve/Reject</strong> - Manager mereview dan mengambil keputusan</li>
+                <li><strong>Print</strong> - PO yang approved bisa dicetak ke PDF</li>
+            </ul>
+        </div>
+
+        <!-- Features -->
+        <div class="card">
+            <h2><span class="icon">✨</span> Features Implemented</h2>
+            
+            <h3>Dynamic Reusable Components</h3>
+            <ul class="checklist">
+                <li><strong>Form Component</strong> - Supports text, textarea, select, checkbox, file, money, date fields</li>
+                <li><strong>DataTable Component</strong> - Server-side processing dengan filter dinamis</li>
+                <li><strong>CRUD Templates</strong> - Index, Form, Show layouts minimal code</li>
+                <li><strong>Action Buttons</strong> - View, Edit, Delete dengan konfirmasi SweetAlert</li>
+            </ul>
+            
+            <h3>SweetAlert Integration</h3>
+            <ul class="checklist">
+                <li>Toast notifications (success, error, warning, info)</li>
+                <li>Delete confirmation dialogs</li>
+                <li>Form validation alerts</li>
+            </ul>
+            
+            <h3>Purchase Order Module</h3>
+            <ul class="checklist">
+                <li>Dynamic product rows dengan AJAX search</li>
+                <li>Real-time calculation (qty × price = subtotal)</li>
+                <li>Auto-generated PO number (PO/YYYYMM/XXX)</li>
+                <li>Timeline activity di detail view</li>
+                <li>Print-ready view dengan signature boxes</li>
+            </ul>
+        </div>
+
+        <!-- Pending Items -->
+        <div class="card">
+            <h2><span class="icon">⚠️</span> Pending Items</h2>
+            
+            <div class="alert alert-warning">
+                <div class="alert-title">📦 Install Composer Packages</div>
+                <p>Jalankan ketika composer sudah siap:</p>
+                <pre>composer require spatie/laravel-permission yajra/laravel-datatables-oracle barryvdh/laravel-dompdf</pre>
+            </div>
+            
+            <div class="alert alert-info">
+                <div class="alert-title">🔧 Publish Spatie Config</div>
+                <pre>php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+php artisan migrate</pre>
+            </div>
+            
+            <div class="alert alert-info">
+                <div class="alert-title">👤 Enable HasRoles Trait</div>
+                <p>Uncomment di <code>app/Models/User.php</code>:</p>
+                <pre>use \Spatie\Permission\Traits\HasRoles;</pre>
+            </div>
+        </div>
+
+        <!-- Testing Checklist -->
+        <div class="card">
+            <h2><span class="icon">✅</span> Testing Checklist</h2>
+            <ul class="checklist">
+                <li>Login dengan credentials admin</li>
+                <li>Lihat dashboard statistics</li>
+                <li>CRUD Categories, Products, Vendors</li>
+                <li>Buat PO baru dengan multiple products</li>
+                <li>Submit PO untuk approval</li>
+                <li class="pending">Login sebagai Manager, approve/reject PO</li>
+                <li class="pending">Print approved PO</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>📅 Generated: <script>document.write(new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))</script></p>
+            <p>Laravel 11 Purchase Order System with AdminLTE 3</p>
+        </footer>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Export</button>
+</body>
+</html>
