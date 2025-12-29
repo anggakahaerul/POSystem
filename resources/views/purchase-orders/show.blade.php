@@ -724,7 +724,7 @@
 
                             $('#payment-description').text(description);
                             $('#paid_amount').val(formatMoney(amount));
-                            $('#form-record-payment').attr('action', '/po-payments/' + id + '/record');
+                            $('#form-record-payment').attr('action', '{{ url("po-payments") }}/' + id + '/record');
                             $('#paymentModal').modal('show');
                         });
 
