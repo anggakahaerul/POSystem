@@ -352,7 +352,7 @@ class PurchaseOrder extends Model
 
     /**
      * Check if goods can be received
-     * Requires: approved status AND paid (or no payment schedule)
+     * Requires: approved status only (flexible - before or after payment)
      */
     public function canReceive(): bool
     {
@@ -363,11 +363,6 @@ class PurchaseOrder extends Model
 
         // Already fully received
         if ($this->receipt_status === self::RECEIPT_RECEIVED) {
-            return false;
-        }
-
-        // Must be paid (if there are payment schedules)
-        if ($this->payments()->count() > 0 && $this->payment_status !== self::PAYMENT_PAID) {
             return false;
         }
 
@@ -415,12 +410,71 @@ class PurchaseOrder extends Model
     }
 
     /**
-     * Receive goods (full)
+     * Receive items with specific quantities
+     * @param array $items Array of [detail_id => received_quantity]
+     * @param int $receiverId User ID who received
+     * @return bool
+     */
+    public function receiveItems(array $items, int $receiverId): bool
+    {
+        if (!$this->canReceive()) {
+            return false;
+        }
+
+        foreach ($items as $detailId => $receivedQty) {
+            $detail = $this->details()->find($detailId);
+            if ($detail && $receivedQty > 0) {
+                // Add to existing received quantity (allow multiple receptions)
+                $newReceivedQty = $detail->received_quantity + $receivedQty;
+                // Cap at ordered quantity
+                $newReceivedQty = min($newReceivedQty, $detail->quantity);
+                
+                $detail->received_quantity = $newReceivedQty;
+                $detail->received_at = now();
+                $detail->save();
+            }
+        }
+
+        $this->received_by = $receiverId;
+        $this->received_at = now();
+        $this->updateReceiptStatus();
+
+        return true;
+    }
+
+    /**
+     * Update receipt status based on received quantities
+     */
+    public function updateReceiptStatus(): void
+    {
+        $totalQtyOrdered = $this->details()->sum('quantity');
+        $totalQtyReceived = $this->details()->sum('received_quantity');
+
+        if ($totalQtyReceived >= $totalQtyOrdered) {
+            $this->receipt_status = self::RECEIPT_RECEIVED;
+        } elseif ($totalQtyReceived > 0) {
+            $this->receipt_status = self::RECEIPT_PARTIAL;
+        } else {
+            $this->receipt_status = self::RECEIPT_NOT_RECEIVED;
+        }
+
+        $this->save();
+    }
+
+    /**
+     * Receive all goods (full) - for backward compatibility
      */
     public function receiveGoods(int $receiverId): bool
     {
         if (!$this->canReceive()) {
             return false;
+        }
+
+        // Mark all items as fully received
+        foreach ($this->details as $detail) {
+            $detail->received_quantity = $detail->quantity;
+            $detail->received_at = now();
+            $detail->save();
         }
 
         $this->receipt_status = self::RECEIPT_RECEIVED;
@@ -430,7 +484,7 @@ class PurchaseOrder extends Model
     }
 
     /**
-     * Partial receive goods
+     * Partial receive goods - for backward compatibility
      */
     public function partialReceive(int $receiverId): bool
     {

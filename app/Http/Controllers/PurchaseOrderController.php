@@ -445,7 +445,28 @@ public function approve(Request $request, PurchaseOrder $purchaseOrder)
 
         $type = $request->get('type', 'full');
 
-        if ($type === 'partial') {
+        if ($type === 'items') {
+            // Receive specific items with quantities
+            $validated = $request->validate([
+                'items' => 'required|array|min:1',
+                'items.*' => 'required|integer|min:0',
+            ], [
+                'items.required' => 'Minimal pilih 1 item untuk diterima.',
+                'items.min' => 'Minimal pilih 1 item untuk diterima.',
+            ]);
+
+            // Filter out zero quantities
+            $itemsToReceive = array_filter($validated['items'], fn($qty) => $qty > 0);
+
+            if (empty($itemsToReceive)) {
+                return redirect()->route('purchase-orders.show', $purchaseOrder->id)
+                    ->with('error', 'Tidak ada item yang dipilih untuk diterima.');
+            }
+
+            $purchaseOrder->receiveItems($itemsToReceive, Auth::id());
+            $message = 'Penerimaan barang berhasil dicatat.';
+
+        } elseif ($type === 'partial') {
             $purchaseOrder->partialReceive(Auth::id());
             $message = 'Penerimaan barang parsial berhasil dicatat.';
         } else {

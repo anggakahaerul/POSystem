@@ -118,6 +118,9 @@
                                     <th width="50">#</th>
                                     <th>Produk</th>
                                     <th width="80" class="text-center">Qty</th>
+                                    @if ($po->status == 'approved')
+                                        <th width="100" class="text-center">Diterima</th>
+                                    @endif
                                     <th width="150" class="text-right">Harga Satuan</th>
                                     <th width="150" class="text-right">Diskon</th>
                                     <th width="150" class="text-right">Subtotal</th>
@@ -133,6 +136,13 @@
                                         </td>
                                         <td class="text-center">{{ $detail->quantity }} {{ $detail->product->unit ?? '' }}
                                         </td>
+                                        @if ($po->status == 'approved')
+                                            <td class="text-center">
+                                                <span class="badge badge-{{ $detail->receipt_status_badge }}">
+                                                    {{ $detail->receipt_status_label }}
+                                                </span>
+                                            </td>
+                                        @endif
                                         <td class="text-right">{{ $detail->formatted_unit_price }}</td>
                                         <td class="text-right">{{ $detail->formatted_discount_amount }}</td>
                                         <td class="text-right">{{ $detail->formatted_subtotal }}</td>
@@ -141,7 +151,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="bg-light">
-                                    <th colspan="3" class="text-right">Total:</th>
+                                    <th colspan="{{ $po->status == 'approved' ? 4 : 3 }}" class="text-right">Total:</th>
                                     <th colspan="2" class="text-right text-primary">{{ $po->formatted_total }}</th>
                                 </tr>
                             </tfoot>
@@ -275,20 +285,16 @@
                     @if ($po->canReceive())
                         <hr>
                         <h6 class="text-muted">Penerimaan Barang</h6>
+                        <button type="button" class="btn btn-success btn-block mt-2" data-toggle="modal"
+                            data-target="#receiveModal">
+                            <i class="fas fa-box-open mr-2"></i> Terima Barang
+                        </button>
                         <form action="{{ route('purchase-orders.receive', $po->id) }}" method="POST" class="mt-2"
                             id="form-receive-full">
                             @csrf
                             <input type="hidden" name="type" value="full">
-                            <button type="button" class="btn btn-success btn-block btn-receive-full">
-                                <i class="fas fa-box-open mr-2"></i> Terima Barang (Lengkap)
-                            </button>
-                        </form>
-                        <form action="{{ route('purchase-orders.receive', $po->id) }}" method="POST" class="mt-2"
-                            id="form-receive-partial">
-                            @csrf
-                            <input type="hidden" name="type" value="partial">
-                            <button type="button" class="btn btn-outline-info btn-block btn-receive-partial">
-                                <i class="fas fa-box mr-2"></i> Terima Sebagian
+                            <button type="button" class="btn btn-outline-success btn-block btn-receive-full">
+                                <i class="fas fa-check-double mr-2"></i> Terima Semua (Lengkap)
                             </button>
                         </form>
                     @endif
@@ -636,6 +642,103 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Receive Items Modal -->
+                @if ($po->status == 'approved')
+                <div class="modal fade" id="receiveModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form action="{{ route('purchase-orders.receive', $po->id) }}" method="POST" id="form-receive-items">
+                                @csrf
+                                <input type="hidden" name="type" value="items">
+                                <div class="modal-header bg-info text-white">
+                                    <h5 class="modal-title"><i class="fas fa-box-open mr-2"></i>Penerimaan Barang</h5>
+                                    <button type="button" class="close text-white" data-dismiss="modal">
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle mr-1"></i> Masukkan jumlah barang yang diterima untuk setiap item. Isi <strong>0</strong> jika item belum diterima.
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover mb-0">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th>
+                                                        <div class="custom-control custom-checkbox">
+                                                            <input type="checkbox" class="custom-control-input" id="select-all-items">
+                                                            <label class="custom-control-label" for="select-all-items">Semua</label>
+                                                        </div>
+                                                    </th>
+                                                    <th>Produk</th>
+                                                    <th class="text-center" width="100">Qty Order</th>
+                                                    <th class="text-center" width="100">Sudah Terima</th>
+                                                    <th class="text-center" width="120">Terima Sekarang</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($po->details as $detail)
+                                                    @php
+                                                        $remaining = $detail->remaining_receive_quantity;
+                                                    @endphp
+                                                    <tr class="{{ $detail->is_fully_received ? 'table-success' : '' }}">
+                                                        <td class="text-center">
+                                                            @if (!$detail->is_fully_received)
+                                                                <div class="custom-control custom-checkbox">
+                                                                    <input type="checkbox" class="custom-control-input item-checkbox" 
+                                                                        id="check-{{ $detail->id }}"
+                                                                        data-id="{{ $detail->id }}"
+                                                                        data-remaining="{{ $remaining }}">
+                                                                    <label class="custom-control-label" for="check-{{ $detail->id }}"></label>
+                                                                </div>
+                                                            @else
+                                                                <i class="fas fa-check text-success"></i>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            <strong>{{ $detail->product->name ?? '-' }}</strong>
+                                                            <br><small class="text-muted">{{ $detail->product->sku ?? '' }}</small>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            {{ $detail->quantity }} {{ $detail->product->unit ?? '' }}
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge badge-{{ $detail->receipt_status_badge }}">
+                                                                {{ $detail->received_quantity ?? 0 }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if (!$detail->is_fully_received)
+                                                                <input type="number" 
+                                                                    name="items[{{ $detail->id }}]" 
+                                                                    class="form-control form-control-sm text-center item-qty"
+                                                                    id="qty-{{ $detail->id }}"
+                                                                    min="0" 
+                                                                    max="{{ $remaining }}"
+                                                                    value="0"
+                                                                    style="width: 80px; margin: 0 auto;">
+                                                            @else
+                                                                <span class="text-success"><i class="fas fa-check"></i> Lengkap</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-info">
+                                        <i class="fas fa-box-open mr-1"></i> Simpan Penerimaan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -698,22 +801,50 @@
                             });
                         });
 
-                        // Receive partial with SweetAlert
-                        $('.btn-receive-partial').on('click', function() {
-                            Swal.fire({
-                                title: 'Terima Sebagian?',
-                                text: 'Konfirmasi bahwa barang diterima sebagian (partial).',
-                                icon: 'question',
-                                showCancelButton: true,
-                                confirmButtonColor: '#17a2b8',
-                                cancelButtonColor: '#6c757d',
-                                confirmButtonText: 'Ya, Terima Sebagian!',
-                                cancelButtonText: 'Batal'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    $('#form-receive-partial').submit();
+                        // Receive Items Modal - Select All Checkbox
+                        $('#select-all-items').on('change', function() {
+                            var isChecked = $(this).is(':checked');
+                            $('.item-checkbox').each(function() {
+                                $(this).prop('checked', isChecked);
+                                var id = $(this).data('id');
+                                var remaining = $(this).data('remaining');
+                                var qtyInput = $('#qty-' + id);
+                                if (isChecked) {
+                                    qtyInput.val(remaining);
+                                } else {
+                                    qtyInput.val(0);
                                 }
                             });
+                        });
+
+                        // Individual item checkbox - auto-fill quantity when checked
+                        $('.item-checkbox').on('change', function() {
+                            var id = $(this).data('id');
+                            var remaining = $(this).data('remaining');
+                            var qtyInput = $('#qty-' + id);
+                            
+                            if ($(this).is(':checked')) {
+                                qtyInput.val(remaining);
+                            } else {
+                                qtyInput.val(0);
+                            }
+
+                            // Update select-all checkbox state
+                            var allChecked = $('.item-checkbox:checked').length === $('.item-checkbox').length;
+                            $('#select-all-items').prop('checked', allChecked);
+                        });
+
+                        // Update checkbox when quantity input changes
+                        $('.item-qty').on('input', function() {
+                            var id = $(this).attr('id').replace('qty-', '');
+                            var checkbox = $('#check-' + id);
+                            var value = parseInt($(this).val()) || 0;
+                            
+                            checkbox.prop('checked', value > 0);
+                            
+                            // Update select-all checkbox state
+                            var allChecked = $('.item-checkbox:checked').length === $('.item-checkbox').length;
+                            $('#select-all-items').prop('checked', allChecked);
                         });
 
                         // Record Payment Modal

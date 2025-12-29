@@ -13,6 +13,8 @@ class PurchaseOrderDetail extends Model
         'purchase_order_id',
         'product_id',
         'quantity',
+        'received_quantity',
+        'received_at',
         'unit_price',
         'subtotal',
         'discount_type',
@@ -24,11 +26,13 @@ class PurchaseOrderDetail extends Model
 
     protected $casts = [
         'quantity' => 'integer',
+        'received_quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'subtotal_after_discount' => 'decimal:2',
+        'received_at' => 'datetime',
     ];
 
     /**
@@ -101,5 +105,56 @@ class PurchaseOrderDetail extends Model
             return 'Rp ' . number_format($this->discount_amount, 0, ',', '.');
         }
         return '-';
+    }
+
+    /**
+     * Check if item is fully received
+     */
+    public function getIsFullyReceivedAttribute(): bool
+    {
+        return ($this->received_quantity ?? 0) >= $this->quantity;
+    }
+
+    /**
+     * Check if item is partially received
+     */
+    public function getIsPartiallyReceivedAttribute(): bool
+    {
+        $received = $this->received_quantity ?? 0;
+        return $received > 0 && $received < $this->quantity;
+    }
+
+    /**
+     * Get remaining quantity to receive
+     */
+    public function getRemainingReceiveQuantityAttribute(): int
+    {
+        return max(0, $this->quantity - ($this->received_quantity ?? 0));
+    }
+
+    /**
+     * Get receipt status badge
+     */
+    public function getReceiptStatusBadgeAttribute(): string
+    {
+        if ($this->is_fully_received) {
+            return 'success';
+        } elseif ($this->is_partially_received) {
+            return 'info';
+        }
+        return 'secondary';
+    }
+
+    /**
+     * Get receipt status label
+     */
+    public function getReceiptStatusLabelAttribute(): string
+    {
+        if ($this->is_fully_received) {
+            return 'Diterima';
+        } elseif ($this->is_partially_received) {
+            return 'Sebagian (' . ($this->received_quantity ?? 0) . '/' . $this->quantity . ')';
+        }
+        return 'Belum';
     }
 }
