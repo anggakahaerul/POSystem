@@ -15,17 +15,19 @@ class BranchSeeder extends Seeder
         $branches = [
             [
                 'code' => 'PLJKT',
-                'name' => 'Jakarta',
+                'name' => 'Branch Jakarta',
                 'address' => 'Jl. Jatiraya Blok J1 No. 10B Komp.Newton Techno Park, Lippo Cikarang, Bekasi 17530',
                 'phone' => '021-89906002',
                 'email' => 'jakarta@panganlestari.com',
+                'footer_note' => 'Branch Jakarta : Jl. Jatiraya Blok J1 No. 10B Komp.Newton Techno Park, Lippo Cikarang, Bekasi 17530',
             ],
             [
-                'code' => 'PLPLSDA',
-                'name' => 'Sidoarjo',
+                'code' => 'PLSDA',
+                'name' => 'Branch Sidoarjo',
                 'address' => 'Jl. Jenggolo II/17, Sidoarjo 61219',
                 'phone' => '031-8963032',
                 'email' => 'sidoarjo@panganlestari.com',
+                'footer_note' => 'Branch Sidoarjo : Jl. Jenggolo II/17, Sidoarjo 61219',
             ],
         ];
 
