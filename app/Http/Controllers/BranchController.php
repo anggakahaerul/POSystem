@@ -51,24 +51,26 @@ class BranchController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'npwp' => 'nullable|string|max:30',
-            'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+            'logo_base64' => 'nullable|string',
             'footer_note' => 'nullable|string',
             'is_active' => 'boolean',
         ], [
             'code.required' => 'Kode cabang wajib diisi.',
             'code.unique' => 'Kode cabang sudah digunakan.',
             'name.required' => 'Nama cabang wajib diisi.',
-            'logo.max' => 'Ukuran logo maksimal 1MB.',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['code'] = strtoupper($validated['code']);
 
-        // Handle logo upload - save as base64
-        if ($request->hasFile('logo')) {
-            $file = $request->file('logo');
-            $validated['logo'] = $file->getClientOriginalName();
-            $validated['logo_base64'] = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
+        // Handle logo upload - already in base64 format from client
+        if ($request->filled('logo_base64')) {
+            // Validate base64 format
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->logo_base64)) {
+                $validated['logo_base64'] = $request->logo_base64;
+                // Extract original filename from base64 prefix for display purposes
+                $validated['logo'] = 'logo_' . time() . '.png';
+            }
         }
 
         Branch::create($validated);
@@ -97,7 +99,7 @@ class BranchController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'npwp' => 'nullable|string|max:30',
-            'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+            'logo_base64' => 'nullable|string',
             'footer_note' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -105,11 +107,14 @@ class BranchController extends Controller
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['code'] = strtoupper($validated['code']);
 
-        // Handle logo upload - save as base64
-        if ($request->hasFile('logo')) {
-            $file = $request->file('logo');
-            $validated['logo'] = $file->getClientOriginalName();
-            $validated['logo_base64'] = 'data:image/' . $file->getClientOriginalExtension() . ';base64,' . base64_encode(file_get_contents($file->getRealPath()));
+        // Handle logo upload - already in base64 format from client
+        if ($request->filled('logo_base64')) {
+            // Validate base64 format
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->logo_base64)) {
+                $validated['logo_base64'] = $request->logo_base64;
+                // Extract original filename from base64 prefix for display purposes
+                $validated['logo'] = 'logo_' . time() . '.png';
+            }
         }
 
         $branch->update($validated);

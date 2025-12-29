@@ -112,21 +112,25 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="logo">Logo Perusahaan</label>
+                                <label for="logo_file">Logo Perusahaan</label>
+                                <input type="hidden" name="logo_base64" id="logo_base64_input">
                                 <div class="custom-file">
-                                    <input type="file" name="logo" id="logo" 
-                                        class="custom-file-input @error('logo') is-invalid @enderror"
-                                        accept="image/*">
-                                    <label class="custom-file-label" for="logo">
+                                    <input type="file" id="logo_file" 
+                                        class="custom-file-input @error('logo_base64') is-invalid @enderror"
+                                        accept="image/png,image/jpeg,image/jpg">
+                                    <label class="custom-file-label" for="logo_file">
                                         {{ $branch?->logo ? basename($branch->logo) : 'Pilih file...' }}
                                     </label>
                                 </div>
-                                @error('logo')
+                                @error('logo_base64')
                                     <span class="invalid-feedback d-block">{{ $message }}</span>
                                 @enderror
-                                <small class="text-muted">Ukuran max: 1MB (PNG/JPG)</small>
+                                <small class="text-muted">Ukuran max: 1MB (PNG/JPG). Gambar akan dikonversi ke base64.</small>
                                 <div class="mt-2" id="logo-preview-container">
-                                    @if($branch?->logo)
+                                    @if($branch?->logo_base64)
+                                        <p class="mb-1 text-muted small">Logo saat ini:</p>
+                                        <img src="{{ $branch->logo_base64 }}" alt="Logo" id="current-logo" style="max-height: 60px; border: 1px solid #ddd; padding: 5px;">
+                                    @elseif($branch?->logo)
                                         <p class="mb-1 text-muted small">Logo saat ini:</p>
                                         <img src="{{ asset('storage/' . $branch->logo) }}" alt="Logo" id="current-logo" style="max-height: 60px; border: 1px solid #ddd; padding: 5px;">
                                     @endif
@@ -194,27 +198,87 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    // Logo preview on file select
-    $('#logo').on('change', function() {
+    // Function to resize image to base64 (same as signature upload)
+    function resizeLogoImage(file, maxWidth, maxHeight, callback) {
+        var reader = new FileReader();
+        reader.onload = function(event) {
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                var width = img.width;
+                var height = img.height;
+
+                // Calculate new dimensions while maintaining aspect ratio
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round(height * maxWidth / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round(width * maxHeight / height);
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to base64 PNG
+                callback(canvas.toDataURL('image/png', 0.9));
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Logo file upload - convert to base64 like signature
+    $('#logo_file').on('change', function() {
         var file = this.files[0];
+        var input = $(this);
+        
         if (file) {
             // Update file input label
-            $(this).next('.custom-file-label').text(file.name);
+            input.next('.custom-file-label').text(file.name);
             
-            // Check file size
+            // Check file size (max 1MB)
             if (file.size > 1024 * 1024) {
-                Swal.fire({icon: 'warning', title: 'File terlalu besar!', text: 'Ukuran maksimal 1MB'});
+                Swal.fire({
+                    icon: 'warning', 
+                    title: 'File terlalu besar!', 
+                    text: 'Ukuran maksimal 1MB'
+                });
+                input.val('');
+                input.next('.custom-file-label').text('Pilih file...');
                 return;
             }
             
-            // Preview image
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                $('#preview-img').attr('src', e.target.result);
+            // Check file type
+            if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
+                Swal.fire({
+                    icon: 'warning', 
+                    title: 'Format tidak valid!', 
+                    text: 'Hanya file PNG dan JPG yang diperbolehkan'
+                });
+                input.val('');
+                input.next('.custom-file-label').text('Pilih file...');
+                return;
+            }
+            
+            // Resize and convert to base64
+            resizeLogoImage(file, 300, 300, function(base64Data) {
+                // Set hidden input with base64 data
+                $('#logo_base64_input').val(base64Data);
+                
+                // Show preview
+                $('#preview-img').attr('src', base64Data);
                 $('#new-logo-preview').show();
                 $('#current-logo').css('opacity', '0.5');
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 });

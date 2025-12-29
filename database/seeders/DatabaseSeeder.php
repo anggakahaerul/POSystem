@@ -25,36 +25,52 @@ class DatabaseSeeder extends Seeder
         // Create Branches
         $this->call(BranchSeeder::class);
 
-        // Create Users
-        $admin = User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $admin->assignRole('Admin');
+        // Create Users (use firstOrCreate to avoid duplicates)
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('password'),
+            ]
+        );
+        if (!$admin->hasRole('Admin')) {
+            $admin->assignRole('Admin');
+        }
 
-        $manager = User::create([
-            'name' => 'Manager Approval',
-            'email' => 'manager@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $manager->assignRole('Manager');
+        $manager = User::firstOrCreate(
+            ['email' => 'manager@example.com'],
+            [
+                'name' => 'Manager Approval',
+                'password' => Hash::make('password'),
+            ]
+        );
+        if (!$manager->hasRole('Manager')) {
+            $manager->assignRole('Manager');
+        }
 
-        $purchasing = User::create([
-            'name' => 'Staff Purchasing',
-            'email' => 'purchasing@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $purchasing->assignRole('Purchasing');
+        $purchasing = User::firstOrCreate(
+            ['email' => 'purchasing@example.com'],
+            [
+                'name' => 'Staff Purchasing',
+                'password' => Hash::make('password'),
+            ]
+        );
+        if (!$purchasing->hasRole('Purchasing')) {
+            $purchasing->assignRole('Purchasing');
+        }
 
-        $finance = User::create([
-            'name' => 'Staff Finance',
-            'email' => 'finance@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $finance->assignRole('Finance');
+        $finance = User::firstOrCreate(
+            ['email' => 'finance@example.com'],
+            [
+                'name' => 'Staff Finance',
+                'password' => Hash::make('password'),
+            ]
+        );
+        if (!$finance->hasRole('Finance')) {
+            $finance->assignRole('Finance');
+        }
 
-        // Create Categories
+        // Create Categories (use firstOrCreate to avoid duplicates)
         $categories = [
             ['name' => 'Elektronik', 'slug' => 'elektronik', 'description' => 'Peralatan elektronik', 'is_active' => true],
             ['name' => 'ATK', 'slug' => 'atk', 'description' => 'Alat Tulis Kantor', 'is_active' => true],
@@ -64,10 +80,13 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($categories as $cat) {
-            Category::create($cat);
+            Category::firstOrCreate(
+                ['slug' => $cat['slug']],
+                $cat
+            );
         }
 
-        // Create Products
+        // Create Products (use firstOrCreate to avoid duplicates)
         $products = [
             ['category_id' => 1, 'name' => 'Laptop ASUS VivoBook', 'sku' => 'ELK0001', 'unit' => 'unit', 'price' => 8500000, 'stock' => 10, 'min_stock' => 3, 'is_active' => true],
             ['category_id' => 1, 'name' => 'Monitor LED 24 inch', 'sku' => 'ELK0002', 'unit' => 'unit', 'price' => 2500000, 'stock' => 15, 'min_stock' => 5, 'is_active' => true],
@@ -82,10 +101,13 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($products as $prd) {
-            Product::create($prd);
+            Product::firstOrCreate(
+                ['sku' => $prd['sku']],
+                $prd
+            );
         }
 
-        // Create Vendors
+        // Create Vendors (use firstOrCreate to avoid duplicates)
         $vendors = [
             ['code' => 'VND0001', 'name' => 'PT. Elektronik Jaya', 'email' => 'sales@elektronikjaya.com', 'phone' => '021-5551234', 'address' => 'Jl. Industri No. 123, Jakarta', 'is_active' => true],
             ['code' => 'VND0002', 'name' => 'CV. ATK Sejahtera', 'email' => 'order@atksejahtera.co.id', 'phone' => '021-5554567', 'address' => 'Jl. Perkantoran No. 45, Bekasi', 'is_active' => true],
@@ -95,7 +117,10 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($vendors as $vnd) {
-            Vendor::create($vnd);
+            Vendor::firstOrCreate(
+                ['code' => $vnd['code']],
+                $vnd
+            );
         }
 
         $this->command->info('');

@@ -16,13 +16,13 @@ class RoleSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create Roles
-        $admin = Role::create(['name' => 'Admin']);
-        $manager = Role::create(['name' => 'Manager']);
-        $purchasing = Role::create(['name' => 'Purchasing']);
-        $finance = Role::create(['name' => 'Finance']);
+        // Create Roles (use firstOrCreate to avoid duplicates)
+        $admin = Role::firstOrCreate(['name' => 'Admin']);
+        $manager = Role::firstOrCreate(['name' => 'Manager']);
+        $purchasing = Role::firstOrCreate(['name' => 'Purchasing']);
+        $finance = Role::firstOrCreate(['name' => 'Finance']);
 
-        // Create Permissions
+        // Create Permissions (use firstOrCreate to avoid duplicates)
         $permissions = [
             // User Management
             'view users',
@@ -60,13 +60,13 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Assign permissions to roles
-        $admin->givePermissionTo(Permission::all());
+        // Assign permissions to roles (syncPermissions will update without duplicating)
+        $admin->syncPermissions(Permission::all());
 
-        $manager->givePermissionTo([
+        $manager->syncPermissions([
             'view users',
             'view categories', 'create categories', 'edit categories',
             'view products', 'create products', 'edit products',
@@ -74,20 +74,20 @@ class RoleSeeder extends Seeder
             'view purchase-orders', 'approve purchase-orders', 'reject purchase-orders', 'print purchase-orders',
         ]);
 
-        $purchasing->givePermissionTo([
+        $purchasing->syncPermissions([
             'view categories',
             'view products',
             'view vendors',
             'view purchase-orders', 'create purchase-orders', 'edit purchase-orders', 'delete purchase-orders', 'submit purchase-orders',
         ]);
 
-        $finance->givePermissionTo([
+        $finance->syncPermissions([
             'view categories',
             'view products',
             'view vendors',
             'view purchase-orders', 'print purchase-orders',
         ]);
 
-        $this->command->info('Roles and Permissions created successfully!');
+        $this->command->info('Roles and Permissions created/updated successfully!');
     }
 }
