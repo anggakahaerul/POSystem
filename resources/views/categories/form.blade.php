@@ -38,6 +38,18 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="asset">Pilihan Asset</label>
+                        <select name="asset" id="asset" class="form-control @error('asset') is-invalid @enderror">
+                            <option value="">-- Pilih Asset (Opsional) --</option>
+                            <option value="HRGA" {{ old('asset', $category?->asset) === 'HRGA' ? 'selected' : '' }}>HRGA</option>
+                            <option value="MIS" {{ old('asset', $category?->asset) === 'MIS' ? 'selected' : '' }}>MIS</option>
+                        </select>
+                        @error('asset')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
                         <label for="description">Deskripsi</label>
                         <textarea name="description" id="description" 
                             class="form-control @error('description') is-invalid @enderror" 

@@ -10,8 +10,16 @@ class Category extends Model
 {
     use HasFactory;
 
+    const ASSET_HRGA = 'HRGA';
+    const ASSET_MIS = 'MIS';
+    const ASSETS = [
+        self::ASSET_HRGA => 'HRGA',
+        self::ASSET_MIS => 'MIS',
+    ];
+
     protected $fillable = [
         'name',
+        'asset',
         'slug',
         'description',
         'is_active',

@@ -141,20 +141,9 @@
                             <td>{{ $po->vendor->name ?? '-' }}</td>
                             <td>Rp {{ number_format($po->total_amount, 0, ',', '.') }}</td>
                             <td>
-                                @switch($po->status)
-                                    @case('draft')
-                                        <span class="badge badge-secondary">Draft</span>
-                                        @break
-                                    @case('pending')
-                                        <span class="badge badge-warning">Pending</span>
-                                        @break
-                                    @case('approved')
-                                        <span class="badge badge-success">Approved</span>
-                                        @break
-                                    @case('rejected')
-                                        <span class="badge badge-danger">Rejected</span>
-                                        @break
-                                @endswitch
+                                <span class="badge badge-{{ $po->status_badge }} px-2 py-1">
+                                    <i class="{{ $po->status_icon }} mr-1"></i>{{ $po->status_label }}
+                                </span>
                             </td>
                             <td>{{ $po->created_at->format('d/m/Y') }}</td>
                         </tr>

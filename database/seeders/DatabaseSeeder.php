@@ -72,11 +72,11 @@ class DatabaseSeeder extends Seeder
 
         // Create Categories (use firstOrCreate to avoid duplicates)
         $categories = [
-            ['name' => 'Elektronik', 'slug' => 'elektronik', 'description' => 'Peralatan elektronik', 'is_active' => true],
-            ['name' => 'ATK', 'slug' => 'atk', 'description' => 'Alat Tulis Kantor', 'is_active' => true],
-            ['name' => 'Furniture', 'slug' => 'furniture', 'description' => 'Perabotan kantor', 'is_active' => true],
-            ['name' => 'Komputer', 'slug' => 'komputer', 'description' => 'Perangkat komputer', 'is_active' => true],
-            ['name' => 'Bahan Baku', 'slug' => 'bahan-baku', 'description' => 'Bahan baku produksi', 'is_active' => true],
+            ['name' => 'Elektronik', 'slug' => 'elektronik', 'asset' => 'MIS', 'description' => 'Peralatan elektronik', 'is_active' => true],
+            ['name' => 'ATK', 'slug' => 'atk', 'asset' => 'HRGA', 'description' => 'Alat Tulis Kantor', 'is_active' => true],
+            ['name' => 'Furniture', 'slug' => 'furniture', 'asset' => 'HRGA', 'description' => 'Perabotan kantor', 'is_active' => true],
+            ['name' => 'Komputer', 'slug' => 'komputer', 'asset' => 'MIS', 'description' => 'Perangkat komputer', 'is_active' => true],
+            ['name' => 'Bahan Baku', 'slug' => 'bahan-baku', 'asset' => null, 'description' => 'Bahan baku produksi', 'is_active' => true],
         ];
 
         foreach ($categories as $cat) {

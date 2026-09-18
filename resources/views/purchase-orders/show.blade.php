@@ -9,6 +9,398 @@
 @endsection
 
 @section('content')
+    @php
+        // --- STEP 1: PO Dibuat ---
+        $step1Class = 'step-completed';
+
+        // --- STEP 2: PO Disubmit ---
+        $step2Done = ($po->status != 'draft');
+        $step2Class = $step2Done ? 'step-completed' : 'step-greyscale';
+
+        // --- STEP 3: Persetujuan (Approval) ---
+        $step3Done = ($po->status == 'approved');
+        $step3Rejected = ($po->status == 'rejected');
+        $step3Pending = ($po->status == 'pending');
+
+        if ($step3Done) {
+            $step3Class = 'step-completed';
+        } elseif ($step3Rejected) {
+            $step3Class = 'step-rejected';
+        } elseif ($step3Pending) {
+            $step3Class = 'step-current status-warning';
+        } else {
+            $step3Class = 'step-greyscale';
+        }
+
+        // --- STEP 4: Penerimaan Barang ---
+        $totalQtyOrdered = $po->details->sum('quantity');
+        $totalQtyReceived = $po->details->sum('received_quantity');
+        $receiptPercent = $totalQtyOrdered > 0 ? round(($totalQtyReceived / $totalQtyOrdered) * 100) : 0;
+
+        $step4Done = ($po->status == 'approved' && $po->receipt_status == 'received');
+        $step4Partial = ($po->status == 'approved' && $po->receipt_status == 'partial');
+        $step4Waiting = ($po->status == 'approved' && $po->receipt_status == 'not_received');
+
+        if ($step4Done) {
+            $step4Class = 'step-completed';
+        } elseif ($step4Partial) {
+            $step4Class = 'step-current status-info';
+        } elseif ($step4Waiting) {
+            $step4Class = 'step-current status-pending';
+        } else {
+            $step4Class = 'step-greyscale';
+        }
+
+        // --- STEP 5: Pembayaran ---
+        $totalPaid = $po->total_paid ?? 0;
+        $step5Done = ($po->payment_status == 'paid');
+        $step5Partial = ($po->payment_status == 'partial');
+
+        if ($step5Done) {
+            $step5Class = 'step-completed';
+        } elseif ($step5Partial) {
+            $step5Class = 'step-current status-info';
+        } elseif ($po->status == 'approved') {
+            $step5Class = 'step-current status-pending';
+        } else {
+            $step5Class = 'step-greyscale';
+        }
+
+        // --- STEP 6: PO Selesai ---
+        $step6Done = ($po->status == 'approved' && $po->receipt_status == 'received' && $po->payment_status == 'paid');
+        $step6Class = $step6Done ? 'step-completed' : 'step-greyscale';
+
+        // Progress bar percentage calculation for 6 steps
+        if ($step3Rejected) {
+            $progressWidth = 40;
+            $progressTrackClass = 'bg-danger';
+        } elseif ($step6Done) {
+            $progressWidth = 100;
+            $progressTrackClass = 'bg-success';
+        } elseif ($step4Done && $step5Done) {
+            $progressWidth = 85;
+            $progressTrackClass = 'bg-success';
+        } elseif ($step4Done || $step5Done) {
+            $progressWidth = 72;
+            $progressTrackClass = 'bg-primary';
+        } elseif ($step4Partial || $step5Partial) {
+            $progressWidth = 60;
+            $progressTrackClass = 'bg-info';
+        } elseif ($step3Done) {
+            $progressWidth = 45;
+            $progressTrackClass = 'bg-primary';
+        } elseif ($step3Pending) {
+            $progressWidth = 35;
+            $progressTrackClass = 'bg-warning';
+        } elseif ($step2Done) {
+            $progressWidth = 20;
+            $progressTrackClass = 'bg-primary';
+        } else {
+            $progressWidth = 8;
+            $progressTrackClass = 'bg-secondary';
+        }
+    @endphp
+
+    <!-- Top Roadmap Stepper Card (6 Steps) -->
+    <div class="card shadow-sm border-0 mb-4 roadmap-card">
+        <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex flex-wrap justify-content-between align-items-center">
+            <h5 class="card-title font-weight-bold text-dark mb-1">
+                <i class="fas fa-route text-primary mr-2"></i>Roadmap & Progress PO
+            </h5>
+            <div class="card-tools d-flex align-items-center mb-1">
+                <span class="badge badge-{{ $po->status_badge }} px-3 py-1 mr-2" style="font-size: 0.8rem;">
+                    <i class="{{ $po->status_icon }} mr-1"></i>Status PO: {{ $po->status_label }}
+                </span>
+                <span class="badge badge-light border text-muted px-2 py-1" style="font-size: 0.8rem;">
+                    <code>{{ $po->po_number }}</code>
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body pt-3 pb-4 px-3">
+            <div class="roadmap-stepper">
+                <!-- Progress Line Track -->
+                <div class="roadmap-progress-track">
+                    <div class="roadmap-progress-fill {{ $progressTrackClass }}" style="width: {{ $progressWidth }}%;"></div>
+                </div>
+
+                <!-- 6 Steps Container -->
+                <div class="roadmap-steps">
+                    <!-- Step 1: PO Dibuat -->
+                    <div class="roadmap-step {{ $step1Class }}">
+                        <div class="roadmap-node">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 1</span>
+                            <h6 class="roadmap-title">PO Dibuat</h6>
+                            <span class="badge badge-success roadmap-badge">
+                                <i class="fas fa-check-circle mr-1"></i>Draft Selesai
+                            </span>
+                            <div class="roadmap-meta">
+                                <span class="roadmap-actor" title="{{ $po->creator->name ?? 'User' }}">
+                                    <i class="fas fa-user mr-1 text-muted"></i>{{ Str::limit($po->creator->name ?? 'User', 14) }}
+                                </span>
+                                <span class="roadmap-time">
+                                    <i class="far fa-clock mr-1"></i>{{ $po->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: PO Disubmit -->
+                    <div class="roadmap-step {{ $step2Class }}">
+                        <div class="roadmap-node">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 2</span>
+                            <h6 class="roadmap-title">PO Disubmit</h6>
+                            @if ($step2Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check mr-1"></i>Telah Disubmit
+                                </span>
+                                <div class="roadmap-meta">
+                                    <span class="roadmap-actor" title="{{ $po->creator->name ?? 'User' }}">
+                                        <i class="fas fa-paper-plane mr-1 text-muted"></i>{{ Str::limit($po->creator->name ?? 'User', 14) }}
+                                    </span>
+                                    <span class="roadmap-time">
+                                        <i class="far fa-clock mr-1"></i>{{ $po->created_at->format('d/m/Y H:i') }}
+                                    </span>
+                                </div>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Belum Disubmit</span>
+                                <div class="roadmap-meta">
+                                    <span class="roadmap-actor text-muted">Menunggu Submit</span>
+                                    <span class="roadmap-time text-muted">-</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Persetujuan (Menunggu / Disetujui / Ditolak) -->
+                    <div class="roadmap-step {{ $step3Class }}">
+                        <div class="roadmap-node">
+                            @if ($step3Done)
+                                <i class="fas fa-check-circle"></i>
+                            @elseif ($step3Rejected)
+                                <i class="fas fa-times-circle"></i>
+                            @elseif ($step3Pending)
+                                <i class="fas fa-clock"></i>
+                            @else
+                                <i class="fas fa-user-shield"></i>
+                            @endif
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 3</span>
+                            <h6 class="roadmap-title">Persetujuan</h6>
+                            @if ($step3Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check mr-1"></i>Disetujui
+                                </span>
+                            @elseif ($step3Rejected)
+                                <span class="badge badge-danger roadmap-badge">
+                                    <i class="fas fa-times mr-1"></i>Ditolak
+                                </span>
+                            @elseif ($step3Pending)
+                                <span class="badge badge-warning roadmap-badge text-dark font-weight-bold">
+                                    <i class="fas fa-hourglass-half mr-1"></i>Menunggu Approval
+                                </span>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Belum Diajukan</span>
+                            @endif
+
+                            <div class="roadmap-meta">
+                                @if ($step3Done || $step3Rejected)
+                                    <span class="roadmap-actor" title="{{ $po->approver->name ?? '-' }}">
+                                        <i class="fas fa-user-shield mr-1 text-muted"></i>{{ Str::limit($po->approver->name ?? '-', 14) }}
+                                    </span>
+                                    <span class="roadmap-time">
+                                        <i class="far fa-clock mr-1"></i>{{ $po->approved_at ? $po->approved_at->format('d/m/Y H:i') : '-' }}
+                                    </span>
+                                    @if ($step3Rejected && $po->rejection_reason)
+                                        <span class="text-danger d-block mt-1 font-weight-bold" style="font-size: 0.7rem;" title="{{ $po->rejection_reason }}">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>{{ Str::limit($po->rejection_reason, 18) }}
+                                        </span>
+                                    @endif
+                                @elseif ($step3Pending)
+                                    <span class="roadmap-actor text-dark font-weight-bold">
+                                        <i class="fas fa-user-clock mr-1 text-warning"></i>Menunggu Manajer
+                                    </span>
+                                    <span class="roadmap-time text-muted">Dalam Antrean</span>
+                                @else
+                                    <span class="roadmap-actor text-muted">-</span>
+                                    <span class="roadmap-time text-muted">-</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Penerimaan Barang -->
+                    <div class="roadmap-step {{ $step4Class }}">
+                        <div class="roadmap-node">
+                            @if ($step4Done)
+                                <i class="fas fa-check-double"></i>
+                            @elseif ($step4Partial)
+                                <i class="fas fa-box-open"></i>
+                            @else
+                                <i class="fas fa-truck-loading"></i>
+                            @endif
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 4</span>
+                            <h6 class="roadmap-title">Penerimaan</h6>
+                            @if ($step4Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check-double mr-1"></i>Diterima Lengkap
+                                </span>
+                            @elseif ($step4Partial)
+                                <span class="badge badge-info roadmap-badge">
+                                    <i class="fas fa-box-open mr-1"></i>Sebagian
+                                </span>
+                            @elseif ($step4Waiting)
+                                <span class="badge badge-secondary roadmap-badge">
+                                    <i class="fas fa-box mr-1"></i>Belum Diterima
+                                </span>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Belum Diterima</span>
+                            @endif
+
+                            <!-- Histori Penerimaan Hover Popover Trigger -->
+                            <div class="receipt-hover-container mt-1">
+                                <span class="receipt-hover-trigger" tabindex="0">
+                                    <i class="fas fa-list-alt mr-1"></i>
+                                    @if ($step4Done)
+                                        Lengkap ({{ $totalQtyReceived }}/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
+                                    @elseif ($step4Partial)
+                                        Histori ({{ $totalQtyReceived }}/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
+                                    @else
+                                        Rincian (0/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
+                                    @endif
+                                </span>
+
+                                <!-- Dropdown Popover Card for Receipt History -->
+                                <div class="receipt-popover-card shadow-lg">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                        <strong class="text-dark" style="font-size: 0.82rem;">
+                                            <i class="fas fa-clipboard-check text-primary mr-1"></i>Histori Penerimaan Barang
+                                        </strong>
+                                        <span class="badge badge-{{ $po->receipt_status_badge }} px-2">
+                                            {{ $po->receipt_status_label }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between text-muted" style="font-size: 0.74rem;">
+                                            <span>Total Fisik Diterima:</span>
+                                            <span class="font-weight-bold text-dark">{{ $totalQtyReceived }} / {{ $totalQtyOrdered }} unit ({{ $receiptPercent }}%)</span>
+                                        </div>
+                                        <div class="progress mt-1" style="height: 6px; border-radius: 4px;">
+                                            <div class="progress-bar bg-{{ $po->receipt_status == 'received' ? 'success' : ($po->receipt_status == 'partial' ? 'info' : 'secondary') }}"
+                                                style="width: {{ $receiptPercent }}%;"></div>
+                                        </div>
+                                    </div>
+
+                                    @if ($po->received_by || $po->received_at)
+                                        <div class="bg-light p-2 rounded mb-2 border" style="font-size: 0.73rem;">
+                                            @if ($po->received_by)
+                                                <div><i class="fas fa-user-check text-muted mr-1"></i>Penerima: <strong>{{ $po->receiver->name ?? '-' }}</strong></div>
+                                            @endif
+                                            @if ($po->received_at)
+                                                <div><i class="far fa-clock text-muted mr-1"></i>Penerimaan Terakhir: <strong>{{ $po->received_at->format('d M Y H:i') }}</strong></div>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    <div class="receipt-items-list" style="max-height: 190px; overflow-y: auto;">
+                                        <table class="table table-sm table-borderless mb-0" style="font-size: 0.74rem;">
+                                            <thead>
+                                                <tr class="text-muted border-bottom" style="font-size: 0.7rem;">
+                                                    <th>Produk</th>
+                                                    <th class="text-center">Qty Diterima</th>
+                                                    <th class="text-right">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($po->details as $detail)
+                                                    <tr class="border-bottom">
+                                                        <td>
+                                                            <strong>{{ $detail->product->name ?? '-' }}</strong>
+                                                            @if ($detail->received_at)
+                                                                <br><small class="text-muted"><i class="far fa-clock"></i> {{ $detail->received_at->format('d/m H:i') }}</small>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center align-middle">
+                                                            <span class="font-weight-bold {{ ($detail->received_quantity ?? 0) > 0 ? 'text-primary' : 'text-muted' }}">
+                                                                {{ $detail->received_quantity ?? 0 }}
+                                                            </span> / {{ $detail->quantity }}
+                                                        </td>
+                                                        <td class="text-right align-middle">
+                                                            <span class="badge badge-{{ $detail->receipt_status_badge }}">
+                                                                {{ $detail->receipt_status_label }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Pembayaran -->
+                    <div class="roadmap-step {{ $step5Class }}">
+                        <div class="roadmap-node">
+                            @if ($step5Done)
+                                <i class="fas fa-money-check-alt"></i>
+                            @elseif ($step5Partial)
+                                <i class="fas fa-hourglass-half"></i>
+                            @else
+                                <i class="fas fa-wallet"></i>
+                            @endif
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 5</span>
+                            <h6 class="roadmap-title">Pembayaran</h6>
+                            @if ($step5Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check-circle mr-1"></i>Lunas
+                                </span>
+                            @elseif ($step5Partial)
+                                <span class="badge badge-info roadmap-badge">
+                                    <i class="fas fa-coins mr-1"></i>Sebagian
+                                </span>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Belum Lunas</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Step 6: PO Selesai -->
+                    <div class="roadmap-step {{ $step6Class }}">
+                        <div class="roadmap-node">
+                            <i class="fas fa-flag-checkered"></i>
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 6</span>
+                            <h6 class="roadmap-title">PO Selesai</h6>
+                            @if ($step6Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check-double mr-1"></i>Tuntas Penuh
+                                </span>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Dalam Proses</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Detail Content Row -->
     <div class="row">
         <div class="col-md-8">
             <!-- PO Info Card -->
@@ -20,7 +412,7 @@
                     </h3>
                     <div class="card-tools">
                         <span class="badge badge-{{ $po->status_badge }} px-3 py-2">
-                            {{ $po->status_label }}
+                            <i class="{{ $po->status_icon }} mr-1"></i>{{ $po->status_label }}
                         </span>
                     </div>
                 </div>
@@ -58,19 +450,19 @@
                                 </tr>
                                 <tr>
                                     <th>Status PO</th>
-                                    <td>: <span class="badge badge-{{ $po->status_badge }}">{{ $po->status_label }}</span>
+                                    <td>: <span class="badge badge-{{ $po->status_badge }}"><i class="{{ $po->status_icon }} mr-1"></i>{{ $po->status_label }}</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>Status Bayar</th>
                                     <td>: <span
-                                            class="badge badge-{{ $po->payment_status_badge ?? 'secondary' }}">{{ $po->payment_status_label ?? 'Belum Lunas' }}</span>
+                                            class="badge badge-{{ $po->payment_status_badge ?? 'secondary' }}"><i class="{{ $po->payment_status_icon }} mr-1"></i>{{ $po->payment_status_label ?? 'Belum Lunas' }}</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>Status Barang</th>
                                     <td>: <span
-                                            class="badge badge-{{ $po->receipt_status_badge ?? 'secondary' }}">{{ $po->receipt_status_label ?? 'Belum Diterima' }}</span>
+                                            class="badge badge-{{ $po->receipt_status_badge ?? 'secondary' }}"><i class="{{ $po->receipt_status_icon }} mr-1"></i>{{ $po->receipt_status_label ?? 'Belum Diterima' }}</span>
                                     </td>
                                 </tr>
                                 @if ($po->approved_by)
@@ -150,9 +542,25 @@
                                 @endforeach
                             </tbody>
                             <tfoot>
+                                <tr>
+                                    <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-muted font-weight-normal border-top">Subtotal:</th>
+                                    <th class="text-right font-weight-normal border-top">Rp {{ number_format($po->subtotal ?? $po->total_amount, 0, ',', '.') }}</th>
+                                </tr>
+                                @if ($po->discount_amount > 0)
+                                    <tr>
+                                        <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-danger font-weight-normal">Diskon:</th>
+                                        <th class="text-right text-danger font-weight-normal">- Rp {{ number_format($po->discount_amount, 0, ',', '.') }}</th>
+                                    </tr>
+                                @endif
+                                @if ($po->ppn_amount > 0)
+                                    <tr>
+                                        <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-muted font-weight-normal">PPN ({{ (float)$po->ppn_percentage }}%):</th>
+                                        <th class="text-right font-weight-normal">Rp {{ number_format($po->ppn_amount, 0, ',', '.') }}</th>
+                                    </tr>
+                                @endif
                                 <tr class="bg-light">
-                                    <th colspan="{{ $po->status == 'approved' ? 4 : 3 }}" class="text-right">Total:</th>
-                                    <th colspan="2" class="text-right text-primary">{{ $po->formatted_total }}</th>
+                                    <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right font-weight-bold">Total PO:</th>
+                                    <th class="text-right text-primary font-weight-bold" style="font-size: 1.05rem;">{{ $po->formatted_total }}</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -326,89 +734,34 @@
                 <div class="card-body">
                     <table class="table table-sm table-borderless mb-0">
                         <tr>
-                            <td>Total PO</td>
+                            <td>Subtotal</td>
+                            <td class="text-right">Rp {{ number_format($po->subtotal ?? $po->total_amount, 0, ',', '.') }}</td>
+                        </tr>
+                        @if ($po->discount_amount > 0)
+                            <tr>
+                                <td>Diskon</td>
+                                <td class="text-right text-danger">- Rp {{ number_format($po->discount_amount, 0, ',', '.') }}</td>
+                            </tr>
+                        @endif
+                        @if ($po->ppn_amount > 0)
+                            <tr>
+                                <td>PPN ({{ (float)$po->ppn_percentage }}%)</td>
+                                <td class="text-right">Rp {{ number_format($po->ppn_amount, 0, ',', '.') }}</td>
+                            </tr>
+                        @endif
+                        <tr class="border-top">
+                            <td><strong>Total PO</strong></td>
                             <td class="text-right"><strong>{{ $po->formatted_total }}</strong></td>
                         </tr>
                         <tr>
                             <td>Terbayar</td>
-                            <td class="text-right text-success">Rp {{ number_format($po->total_paid ?? 0, 0, ',', '.') }}
-                            </td>
+                            <td class="text-right text-success">Rp {{ number_format($po->total_paid ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="border-top">
                             <td><strong>Sisa</strong></td>
-                            <td class="text-right text-danger"><strong>Rp
-                                    {{ number_format($po->remaining_amount ?? $po->total_amount, 0, ',', '.') }}</strong>
-                            </td>
+                            <td class="text-right text-danger"><strong>Rp {{ number_format($po->remaining_amount ?? $po->total_amount, 0, ',', '.') }}</strong></td>
                         </tr>
                     </table>
-                </div>
-            </div>
-
-            <!-- Timeline -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-history mr-2"></i>Timeline</h3>
-                </div>
-                <div class="card-body">
-                    <div class="timeline timeline-inverse">
-                        <div class="time-label">
-                            <span class="bg-secondary">{{ $po->created_at->format('d M Y') }}</span>
-                        </div>
-                        <div>
-                            <i class="fas fa-plus bg-primary"></i>
-                            <div class="timeline-item">
-                                <span class="time"><i class="fas fa-clock"></i>
-                                    {{ $po->created_at->format('H:i') }}</span>
-                                <h3 class="timeline-header">PO Dibuat</h3>
-                                <div class="timeline-body">
-                                    Oleh {{ $po->creator->name ?? 'Unknown' }}
-                                </div>
-                            </div>
-                        </div>
-                        @if ($po->status != 'draft')
-                            <div>
-                                <i class="fas fa-paper-plane bg-info"></i>
-                                <div class="timeline-item">
-                                    <h3 class="timeline-header">PO Disubmit</h3>
-                                    <div class="timeline-body">Menunggu approval</div>
-                                </div>
-                            </div>
-                        @endif
-                        @if ($po->approved_at)
-                            <div>
-                                <i
-                                    class="fas fa-{{ $po->status == 'approved' ? 'check' : 'times' }} bg-{{ $po->status == 'approved' ? 'success' : 'danger' }}"></i>
-                                <div class="timeline-item">
-                                    <span class="time"><i class="fas fa-clock"></i>
-                                        {{ $po->approved_at->format('H:i') }}</span>
-                                    <h3 class="timeline-header">PO
-                                        {{ $po->status == 'approved' ? 'Disetujui' : 'Ditolak' }}</h3>
-                                    <div class="timeline-body">
-                                        Oleh {{ $po->approver->name ?? 'Unknown' }}
-                                        @if ($po->rejection_reason)
-                                            <br><small class="text-danger">{{ $po->rejection_reason }}</small>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                        @if ($po->received_at)
-                            <div>
-                                <i class="fas fa-box-open bg-success"></i>
-                                <div class="timeline-item">
-                                    <span class="time"><i class="fas fa-clock"></i>
-                                        {{ $po->received_at->format('H:i') }}</span>
-                                    <h3 class="timeline-header">Barang Diterima</h3>
-                                    <div class="timeline-body">
-                                        Oleh {{ $po->receiver->name ?? 'Unknown' }}
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                        <div>
-                            <i class="fas fa-clock bg-gray"></i>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1070,3 +1423,425 @@
                 <!-- SignaturePad Library -->
                 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 @endpush
+
+@push('styles')
+<style>
+    /* ============================================================
+       ROADMAP STEPPER STYLES
+       ============================================================ */
+    .roadmap-card {
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        overflow: visible !important;
+    }
+
+    .roadmap-card .card-body {
+        overflow: visible !important;
+    }
+
+    .roadmap-stepper {
+        position: relative;
+        padding: 10px 10px 0 10px;
+        overflow: visible !important;
+    }
+
+    /* Connecting Progress Track */
+    .roadmap-progress-track {
+        position: absolute;
+        top: 35px;
+        left: 8%;
+        right: 8%;
+        height: 4px;
+        background-color: #e2e8f0;
+        z-index: 1;
+        border-radius: 4px;
+    }
+
+    .roadmap-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease-in-out;
+    }
+
+    .roadmap-progress-fill.bg-success {
+        background: linear-gradient(90deg, #10b981, #059669) !important;
+    }
+
+    .roadmap-progress-fill.bg-primary {
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8) !important;
+    }
+
+    .roadmap-progress-fill.bg-info {
+        background: linear-gradient(90deg, #06b6d4, #0284c7) !important;
+    }
+
+    .roadmap-progress-fill.bg-warning {
+        background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+    }
+
+    .roadmap-progress-fill.bg-danger {
+        background: linear-gradient(90deg, #ef4444, #b91c1c) !important;
+    }
+
+    /* Steps flex row */
+    .roadmap-steps {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        overflow: visible !important;
+    }
+
+    .roadmap-step {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 6px;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    /* Node Circle */
+    .roadmap-node {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 10px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 3;
+    }
+
+    /* Step content typography */
+    .roadmap-content {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .roadmap-step-num {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin-bottom: 2px;
+    }
+
+    .roadmap-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #1e293b;
+        line-height: 1.3;
+    }
+
+    .roadmap-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.25rem 0.6rem;
+        border-radius: 50rem;
+        margin-bottom: 6px;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    .roadmap-meta {
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: #475569;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .roadmap-actor {
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 2px;
+    }
+
+    .roadmap-time {
+        font-size: 0.72rem;
+        color: #64748b;
+    }
+
+    /* ============================================================
+       STATE 1: COMPLETED (Active, Full Color, Checked)
+       ============================================================ */
+    .roadmap-step.step-completed .roadmap-node {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        border: 3px solid #d1fae5;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+
+    .roadmap-step.step-completed .roadmap-step-num {
+        color: #10b981;
+    }
+
+    .roadmap-step.step-completed .roadmap-title {
+        color: #064e3b;
+    }
+
+    /* ============================================================
+       STATE 2: CURRENT / IN PROGRESS (Pulse, Vibrant Color)
+       ============================================================ */
+    .roadmap-step.step-current.status-warning .roadmap-node {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #ffffff;
+        border: 3px solid #fef3c7;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
+        animation: pulse-ring-warning 2s infinite;
+    }
+
+    .roadmap-step.step-current.status-info .roadmap-node {
+        background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+        color: #ffffff;
+        border: 3px solid #cffafe;
+        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.25);
+        animation: pulse-ring-info 2s infinite;
+    }
+
+    .roadmap-step.step-current.status-pending .roadmap-node {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border: 3px solid #dbeafe;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+    }
+
+    .roadmap-step.step-current .roadmap-step-num {
+        color: #2563eb;
+    }
+
+    @keyframes pulse-ring-warning {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+        70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    @keyframes pulse-ring-info {
+        0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.5); }
+        70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+    }
+
+    /* ============================================================
+       STATE 3: REJECTED (Danger Color)
+       ============================================================ */
+    .roadmap-step.step-rejected .roadmap-node {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #ffffff;
+        border: 3px solid #fee2e2;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .roadmap-step.step-rejected .roadmap-step-num {
+        color: #ef4444;
+    }
+
+    .roadmap-step.step-rejected .roadmap-title {
+        color: #991b1b;
+    }
+
+    /* ============================================================
+       STATE 4: GREYSCALE / INCOMPLETE (Muted, Greyscale)
+       ============================================================ */
+    .roadmap-step.step-greyscale {
+        filter: grayscale(100%);
+        opacity: 0.55;
+    }
+
+    .roadmap-step.step-greyscale .roadmap-node {
+        background-color: #f8fafc;
+        color: #94a3b8;
+        border: 2px dashed #cbd5e1;
+        box-shadow: none;
+    }
+
+    .roadmap-step.step-greyscale .roadmap-title {
+        color: #64748b;
+    }
+
+    .roadmap-step.step-greyscale .roadmap-meta {
+        color: #94a3b8;
+    }
+
+    /* ============================================================
+       RECEIPT HISTORY HOVER TRIGGER & POPOVER CARD
+       ============================================================ */
+    .receipt-hover-container {
+        position: relative;
+        display: inline-block;
+        z-index: 1050;
+    }
+
+    .receipt-hover-trigger {
+        cursor: pointer;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background-color: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .receipt-hover-trigger:hover,
+    .receipt-hover-trigger:focus {
+        background-color: #16a34a;
+        color: #ffffff;
+        border-color: #16a34a;
+        box-shadow: 0 3px 10px rgba(22, 163, 74, 0.25);
+        outline: none;
+    }
+
+    .receipt-popover-card {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 320px;
+        max-width: 380px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.18), 0 5px 15px rgba(0, 0, 0, 0.08);
+        padding: 14px;
+        z-index: 1060;
+        text-align: left;
+        filter: none !important; /* Ensure it stays fully colored even if parent step is greyscaled */
+        opacity: 1 !important;
+        pointer-events: auto;
+    }
+
+    /* Triangle indicator */
+    .receipt-popover-card::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        margin-left: -7px;
+        border-width: 7px;
+        border-style: solid;
+        border-color: transparent transparent #ffffff transparent;
+    }
+
+    .receipt-hover-container:hover .receipt-popover-card,
+    .receipt-hover-container:focus-within .receipt-popover-card {
+        display: block;
+        animation: fadeInPopover 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes fadeInPopover {
+        from {
+            opacity: 0;
+            transform: translate(-50%, 6px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+    }
+
+    /* Node Circle */
+    .roadmap-node {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        margin-bottom: 8px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 3;
+    }
+
+    /* Responsive adjustments for 6 steps */
+    @media (max-width: 1199.98px) {
+        .roadmap-step {
+            padding: 0 3px;
+        }
+        .roadmap-title {
+            font-size: 0.82rem;
+        }
+        .roadmap-badge {
+            font-size: 0.68rem;
+            padding: 0.2rem 0.45rem;
+        }
+        .roadmap-meta {
+            font-size: 0.71rem;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .roadmap-progress-track {
+            display: none;
+        }
+        .roadmap-steps {
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .roadmap-step {
+            flex: 0 0 31%;
+            margin-bottom: 10px;
+        }
+        .receipt-popover-card {
+            left: 0;
+            transform: none;
+        }
+        .receipt-popover-card::before {
+            left: 20px;
+            margin-left: 0;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .roadmap-step {
+            flex: 0 0 48%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .roadmap-step {
+            flex: 0 0 100%;
+            flex-direction: row;
+            text-align: left;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .roadmap-content {
+            align-items: flex-start;
+        }
+        .roadmap-meta {
+            align-items: flex-start;
+        }
+        .roadmap-node {
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+    }
+</style>
+@endpush
+

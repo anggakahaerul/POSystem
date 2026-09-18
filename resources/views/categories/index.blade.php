@@ -41,7 +41,14 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    @if(request('search') || request('status'))
+                    <select name="asset" class="form-control" onchange="this.form.submit()">
+                        <option value="">-- Asset --</option>
+                        <option value="HRGA" {{ request('asset') == 'HRGA' ? 'selected' : '' }}>HRGA</option>
+                        <option value="MIS" {{ request('asset') == 'MIS' ? 'selected' : '' }}>MIS</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    @if(request('search') || request('status') || request('asset'))
                         <a href="{{ route('categories.index') }}" class="btn btn-secondary">
                             <i class="fas fa-times mr-1"></i> Reset
                         </a>
@@ -57,6 +64,7 @@
                     <tr>
                         <th width="50">#</th>
                         <th>Nama Kategori</th>
+                        <th width="100" class="text-center">Asset</th>
                         <th>Deskripsi</th>
                         <th width="120" class="text-center">Jumlah Produk</th>
                         <th width="100" class="text-center">Status</th>
@@ -70,6 +78,15 @@
                         <td>
                             <strong>{{ $category->name }}</strong>
                             <br><small class="text-muted">{{ $category->slug }}</small>
+                        </td>
+                        <td class="text-center">
+                            @if($category->asset == 'HRGA')
+                                <span class="badge badge-primary font-weight-bold">HRGA</span>
+                            @elseif($category->asset == 'MIS')
+                                <span class="badge badge-info font-weight-bold">MIS</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
                         </td>
                         <td>{{ Str::limit($category->description, 50) ?: '-' }}</td>
                         <td class="text-center">
@@ -99,7 +116,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
                             Belum ada data kategori
                         </td>

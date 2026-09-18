@@ -8,6 +8,78 @@
     <li class="breadcrumb-item active">Buat PO</li>
 @endsection
 
+@push('styles')
+<style>
+    /* Modal Two-Column Layout & ERP Styling */
+    #productModal .modal-content {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    #productModal .modal-header {
+        background-color: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .catalog-column {
+        background-color: #ffffff;
+    }
+    .selected-column {
+        background-color: #f8fafc;
+        border-left: 1px solid #e2e8f0;
+    }
+    .product-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease-in-out;
+    }
+    .product-row:hover {
+        background-color: #f1f5f9;
+    }
+    .product-row.is-selected {
+        background-color: #ebf5ff !important;
+    }
+    .product-row.is-selected td:first-child {
+        border-left: 3px solid #007bff;
+    }
+    .catalog-scroll-container,
+    .selected-scroll-container {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    .catalog-scroll-container::-webkit-scrollbar,
+    .selected-scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .catalog-scroll-container::-webkit-scrollbar-track,
+    .selected-scroll-container::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+    .catalog-scroll-container::-webkit-scrollbar-thumb,
+    .selected-scroll-container::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+    .selected-item-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        border-left: 3px solid #007bff !important;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .selected-item-card:hover {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    @media (max-width: 991.98px) {
+        .selected-column {
+            border-left: none !important;
+            border-top: 2px solid #e2e8f0;
+        }
+    }
+</style>
+@endpush
+
 @section('content')
     <form action="{{ route('purchase-orders.store') }}" method="POST" id="po-form">
         @csrf
@@ -96,7 +168,7 @@
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-boxes mr-2"></i>Item Produk</h3>
                         <div class="card-tools">
-                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                            <button type="button" class="btn btn-primary btn-sm" id="btn-open-product-modal" data-toggle="modal"
                                 data-target="#productModal">
                                 <i class="fas fa-plus mr-1"></i> Tambah Produk
                             </button>
@@ -228,87 +300,210 @@
         </div>
     </form>
 
-    <!-- Product Selection Modal -->
-    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-boxes mr-2"></i>Pilih Produk</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
+    <!-- Product Selection Modal (Redesigned ERP Two-Column Layout) -->
+    <div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="productModalLabel" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content border-0">
+                <!-- Modal Header -->
+                <div class="modal-header py-2 px-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="modal-title font-weight-bold text-dark mb-0" id="productModalLabel">
+                            <i class="fas fa-boxes text-primary mr-2"></i>Pilih Produk untuk Purchase Order
+                        </h5>
+                        <small class="text-muted">Cari produk, centang untuk memilih, dan atur jumlah langsung sebelum menambahkan ke PO</small>
+                    </div>
+                    <button type="button" class="close text-muted" id="btn-modal-close-top" aria-label="Tutup">
+                        <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    <!-- Search & Filter -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <input type="text" id="modal-search" class="form-control"
-                                    placeholder="Cari nama atau SKU produk...">
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-default" id="btn-search">
-                                        <i class="fas fa-search"></i>
+
+                <!-- Modal Body (Two-Column ERP Layout) -->
+                <div class="modal-body p-0">
+                    <div class="row no-gutters">
+                        <!-- Left Column: Product Catalog (~65%) -->
+                        <div class="col-lg-7 col-xl-8 p-3 d-flex flex-column catalog-column">
+                            <!-- Search & Category Filter -->
+                            <div class="row mb-2">
+                                <div class="col-md-7 mb-2 mb-md-0">
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text bg-white border-right-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                        </div>
+                                        <input type="text" id="modal-search" class="form-control border-left-0 border-right-0"
+                                            placeholder="Cari nama atau SKU produk..." autocomplete="off">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-outline-secondary border-left-0 bg-white" 
+                                                id="btn-clear-search" style="display: none;" title="Hapus pencarian">
+                                                <i class="fas fa-times text-muted"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <select id="modal-category" class="form-control form-control-sm">
+                                        <option value="">Semua Kategori</option>
+                                        @foreach (\App\Models\Category::active()->orderBy('name')->get() as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Subheader: Select All & Counter -->
+                            <div class="d-flex justify-content-between align-items-center py-1 px-2 border-bottom bg-light mb-2 rounded">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="check-all">
+                                    <label class="custom-control-label text-muted small cursor-pointer" for="check-all" id="label-check-all">
+                                        Pilih Semua Hasil ({{ count($products) }})
+                                    </label>
+                                </div>
+                                <span class="small text-muted" id="catalog-count-text">
+                                    Menampilkan <strong id="catalog-visible-count">{{ count($products) }}</strong> produk
+                                </span>
+                            </div>
+
+                            <!-- Scrollable Products Catalog -->
+                            <div class="catalog-scroll-container flex-grow-1" style="max-height: 430px; min-height: 280px; overflow-y: auto;">
+                                <table class="table table-hover table-sm border-bottom mb-0" id="products-table">
+                                    <thead class="bg-light text-muted sticky-top">
+                                        <tr>
+                                            <th width="35" class="text-center align-middle"></th>
+                                            <th class="align-middle">Produk & SKU</th>
+                                            <th width="110" class="align-middle">Kategori</th>
+                                            <th width="110" class="text-right align-middle">Harga Satuan</th>
+                                            <th width="170" class="text-center align-middle">Jumlah (Qty)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="products-body">
+                                        @foreach ($products as $product)
+                                            <tr class="product-row" 
+                                                id="product-row-{{ $product->id }}"
+                                                data-id="{{ $product->id }}"
+                                                data-name="{{ $product->name }}" 
+                                                data-sku="{{ $product->sku }}"
+                                                data-unit="{{ $product->unit }}" 
+                                                data-price="{{ (float)$product->price }}"
+                                                data-formatted-price="{{ $product->formatted_price }}"
+                                                data-category="{{ $product->category_id }}"
+                                                data-category-name="{{ $product->category->name ?? '-' }}"
+                                                data-stock="{{ $product->stock }}">
+                                                <td class="text-center align-middle" style="width: 35px;">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" class="custom-control-input product-checkbox" 
+                                                            id="chk-prod-{{ $product->id }}" value="{{ $product->id }}">
+                                                        <label class="custom-control-label cursor-pointer" for="chk-prod-{{ $product->id }}"></label>
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <div class="font-weight-bold text-dark product-title">{{ $product->name }}</div>
+                                                    <div class="small text-muted d-flex align-items-center flex-wrap">
+                                                        <code class="mr-2">{{ $product->sku }}</code>
+                                                        <span class="mr-2">Stok: {{ $product->stock }} {{ $product->unit }}</span>
+                                                        <span class="badge badge-info po-already-badge" id="po-badge-{{ $product->id }}" style="display: none;">
+                                                            <i class="fas fa-check-circle mr-1"></i>Di PO: <span class="po-badge-qty">0</span>
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <span class="badge badge-secondary font-weight-normal">{{ $product->category->name ?? '-' }}</span>
+                                                </td>
+                                                <td class="align-middle text-right font-weight-bold text-dark">
+                                                    {{ $product->formatted_price }}
+                                                </td>
+                                                <td class="align-middle text-center" style="width: 170px;">
+                                                    <div class="catalog-qty-group input-group input-group-sm" id="catalog-qty-box-{{ $product->id }}" style="display: none; width: 145px; margin: 0 auto;">
+                                                        <div class="input-group-prepend">
+                                                            <button type="button" class="btn btn-outline-secondary btn-catalog-qty-minus" data-id="{{ $product->id }}">
+                                                                <i class="fas fa-minus fa-xs"></i>
+                                                            </button>
+                                                        </div>
+                                                        <input type="number" class="form-control text-center catalog-qty-input px-1" 
+                                                            id="catalog-qty-{{ $product->id }}" data-id="{{ $product->id }}" 
+                                                            min="1" step="1" value="1">
+                                                        <div class="input-group-append">
+                                                            <button type="button" class="btn btn-outline-secondary btn-catalog-qty-plus" data-id="{{ $product->id }}">
+                                                                <i class="fas fa-plus fa-xs"></i>
+                                                            </button>
+                                                            <span class="input-group-text py-0 px-1 small text-muted">{{ $product->unit }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="catalog-qty-placeholder text-muted small" id="catalog-qty-ph-{{ $product->id }}">
+                                                        <span class="text-black-50"><i class="far fa-square mr-1"></i>Centang untuk pilih</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+
+                                <!-- Empty State for Catalog -->
+                                <div id="catalog-empty-state" class="text-center py-5 text-muted" style="display: none;">
+                                    <i class="fas fa-search fa-3x mb-3 text-secondary"></i>
+                                    <h6 class="font-weight-bold text-dark">Produk Tidak Ditemukan</h6>
+                                    <p class="small text-muted mb-3">Tidak ditemukan produk yang cocok dengan pencarian atau filter yang dipilih.</p>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-reset-filters">
+                                        <i class="fas fa-redo mr-1"></i> Reset Pencarian & Filter
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <select id="modal-category" class="form-control">
-                                <option value="">Semua Kategori</option>
-                                @foreach (\App\Models\Category::active()->orderBy('name')->get() as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3 text-right">
-                            <span class="badge badge-primary p-2" id="selected-count">0 dipilih</span>
-                        </div>
-                    </div>
 
-                    <!-- Products Table -->
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-bordered table-hover table-sm" id="products-table">
-                            <thead class="bg-light sticky-top">
-                                <tr>
-                                    <th width="40" class="text-center">
-                                        <input type="checkbox" id="check-all" title="Pilih Semua">
-                                    </th>
-                                    <th width="100">SKU</th>
-                                    <th>Nama Produk</th>
-                                    <th>Kategori</th>
-                                    <th width="80">Satuan</th>
-                                    <th width="120" class="text-right">Harga</th>
-                                </tr>
-                            </thead>
-                            <tbody id="products-body">
-                                @foreach ($products as $product)
-                                    <tr class="product-row" data-id="{{ $product->id }}"
-                                        data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
-                                        data-unit="{{ $product->unit }}" data-price="{{ $product->price }}"
-                                        data-category="{{ $product->category_id }}">
-                                        <td class="text-center">
-                                            <input type="checkbox" class="product-checkbox" value="{{ $product->id }}">
-                                        </td>
-                                        <td><code>{{ $product->sku }}</code></td>
-                                        <td>{{ $product->name }}</td>
-                                        <td><span
-                                                class="badge badge-secondary">{{ $product->category->name ?? '-' }}</span>
-                                        </td>
-                                        <td>{{ $product->unit }}</td>
-                                        <td class="text-right">{{ $product->formatted_price }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                        <!-- Right Column: Selected Products Panel (~35%) -->
+                        <div class="col-lg-5 col-xl-4 p-3 selected-column d-flex flex-column">
+                            <!-- Panel Header -->
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                <div>
+                                    <i class="fas fa-shopping-cart text-primary mr-1"></i>
+                                    <strong class="text-dark">Produk Dipilih</strong>
+                                    <span class="badge badge-primary ml-1 font-weight-bold" id="selected-badge-count">0</span>
+                                </div>
+                                <button type="button" class="btn btn-link btn-sm text-danger p-0 font-weight-normal" id="btn-clear-all-selected" style="display: none;">
+                                    <i class="fas fa-trash-alt mr-1"></i>Hapus Semua
+                                </button>
+                            </div>
+
+                            <!-- Scrollable Selected Items Container -->
+                            <div class="selected-scroll-container flex-grow-1" id="selected-items-container" style="max-height: 430px; min-height: 280px; overflow-y: auto;">
+                                <!-- Empty State -->
+                                <div id="selected-empty-state" class="text-center py-5 px-3 text-muted">
+                                    <div class="mb-3 text-black-50">
+                                        <i class="fas fa-clipboard-list fa-3x"></i>
+                                    </div>
+                                    <h6 class="font-weight-bold text-dark">Belum Ada Produk Dipilih</h6>
+                                    <p class="small text-muted mb-0">
+                                        Centang produk pada katalog di sebelah kiri dan tentukan jumlah yang ingin dipesan.
+                                    </p>
+                                </div>
+
+                                <!-- Selected Items Cards List -->
+                                <div id="selected-items-list" style="display: none;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        <i class="fas fa-times mr-1"></i> Tutup
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btn-add-selected">
-                        <i class="fas fa-plus mr-1"></i> Tambahkan Produk Terpilih
-                    </button>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted" id="footer-count-text">
+                            <strong class="text-primary h6 mb-0 mr-1" id="footer-selected-count">0</strong> produk dipilih
+                        </span>
+                        <small class="text-danger ml-2 d-none" id="footer-qty-error">
+                            <i class="fas fa-exclamation-circle mr-1"></i>Jumlah produk harus berupa angka minimal 1
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-secondary mr-2" id="btn-modal-cancel">
+                            <i class="fas fa-times mr-1"></i> Batal
+                        </button>
+                        <button type="button" class="btn btn-primary font-weight-bold" id="btn-add-selected" disabled>
+                            <i class="fas fa-plus mr-1"></i> <span id="btn-add-text">Tambahkan ke PO</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -367,85 +562,466 @@
         $(document).ready(function() {
             let itemIndex = 0;
 
-            // Search in modal
-            $('#modal-search').on('keyup', filterProducts);
-            $('#modal-category').on('change', filterProducts);
-            $('#btn-search').on('click', filterProducts);
+            // State for Modal Product Selection
+            let modalSelectedProducts = new Map(); // key: productId (number), value: { id, name, sku, unit, price, formatted_price, quantity }
+            let searchDebounceTimer = null;
+            let lastFocusedTrigger = null;
 
-            function filterProducts() {
-                var search = $('#modal-search').val().toLowerCase();
-                var category = $('#modal-category').val();
+            // Track trigger button for accessibility focus restoration
+            $('#btn-open-product-modal').on('click', function() {
+                lastFocusedTrigger = this;
+            });
 
-                $('.product-row').each(function() {
-                    var name = $(this).data('name').toLowerCase();
-                    var sku = $(this).data('sku').toLowerCase();
-                    var cat = $(this).data('category').toString();
+            // Sync with existing PO items (marks items already in PO)
+            function syncExistingPoItems() {
+                $('.po-already-badge').hide();
+                $('.product-row').removeClass('is-in-po');
 
-                    var matchSearch = name.includes(search) || sku.includes(search);
-                    var matchCategory = !category || cat === category;
-
-                    $(this).toggle(matchSearch && matchCategory);
+                $('.item-row').each(function() {
+                    let prodId = parseInt($(this).find('.product-id').val());
+                    let qty = parseInt($(this).find('.item-qty').val()) || 0;
+                    if (prodId) {
+                        let row = $(`#product-row-${prodId}`);
+                        if (row.length) {
+                            row.addClass('is-in-po');
+                            let badge = $(`#po-badge-${prodId}`);
+                            badge.find('.po-badge-qty').text(qty);
+                            badge.show();
+                        }
+                    }
                 });
             }
 
-            // Check all
-            $('#check-all').on('change', function() {
-                var checked = $(this).prop('checked');
-                $('.product-row:visible .product-checkbox').prop('checked', checked);
-                updateSelectedCount();
-            });
+            // Filter Catalog Products
+            function filterProducts() {
+                let search = ($('#modal-search').val() || '').trim().toLowerCase();
+                let category = $('#modal-category').val();
+                let visibleCount = 0;
+                let visibleCheckedCount = 0;
 
-            // Update selected count
-            $(document).on('change', '.product-checkbox', updateSelectedCount);
+                $('.product-row').each(function() {
+                    let name = ($(this).data('name') || '').toString().toLowerCase();
+                    let sku = ($(this).data('sku') || '').toString().toLowerCase();
+                    let cat = ($(this).data('category') || '').toString();
+                    let prodId = parseInt($(this).data('id'));
 
-            function updateSelectedCount() {
-                var count = $('.product-checkbox:checked').length;
-                $('#selected-count').text(count + ' dipilih');
+                    let matchSearch = !search || name.includes(search) || sku.includes(search);
+                    let matchCategory = !category || cat === category;
+                    let isVisible = matchSearch && matchCategory;
+
+                    $(this).toggle(isVisible);
+
+                    if (isVisible) {
+                        visibleCount++;
+                        if (modalSelectedProducts.has(prodId)) {
+                            visibleCheckedCount++;
+                        }
+                    }
+                });
+
+                // Update Catalog UI & Counters
+                $('#catalog-visible-count').text(visibleCount);
+                $('#label-check-all').text(`Pilih Semua Hasil (${visibleCount})`);
+
+                if (visibleCount === 0) {
+                    $('#products-table').hide();
+                    $('#catalog-empty-state').show();
+                    $('#check-all').prop('checked', false).prop('indeterminate', false).prop('disabled', true);
+                } else {
+                    $('#products-table').show();
+                    $('#catalog-empty-state').hide();
+                    $('#check-all').prop('disabled', false);
+
+                    if (visibleCheckedCount === 0) {
+                        $('#check-all').prop('checked', false).prop('indeterminate', false);
+                    } else if (visibleCheckedCount === visibleCount) {
+                        $('#check-all').prop('checked', true).prop('indeterminate', false);
+                    } else {
+                        $('#check-all').prop('checked', false).prop('indeterminate', true);
+                    }
+                }
             }
 
-            // Add selected products
-            $('#btn-add-selected').on('click', function() {
-                var selectedProducts = [];
-                $('.product-checkbox:checked').each(function() {
-                    var row = $(this).closest('.product-row');
-                    selectedProducts.push({
-                        id: row.data('id'),
+            // Search input with debounce and clear button
+            $('#modal-search').on('input', function() {
+                let val = $(this).val();
+                $('#btn-clear-search').toggle(val.length > 0);
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(filterProducts, 200);
+            });
+
+            // Enter key on search: if 1 visible and unchecked, select it
+            $('#modal-search').on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let visibleRows = $('.product-row:visible');
+                    if (visibleRows.length === 1) {
+                        let row = visibleRows.first();
+                        let chk = row.find('.product-checkbox');
+                        if (!chk.prop('checked')) {
+                            chk.prop('checked', true).trigger('change');
+                            row.find('.catalog-qty-input').focus().select();
+                        }
+                    }
+                }
+            });
+
+            // Clear search button
+            $('#btn-clear-search').on('click', function() {
+                $('#modal-search').val('');
+                $(this).hide();
+                filterProducts();
+                $('#modal-search').focus();
+            });
+
+            // Category filter change
+            $('#modal-category').on('change', function() {
+                filterProducts();
+            });
+
+            // Reset filters button in empty state
+            $('#btn-reset-filters').on('click', function() {
+                $('#modal-search').val('');
+                $('#btn-clear-search').hide();
+                $('#modal-category').val('');
+                filterProducts();
+                $('#modal-search').focus();
+            });
+
+            // Catalog Row Click: toggle selection when clicking row (except on controls)
+            $(document).on('click', '.product-row', function(e) {
+                if ($(e.target).closest('.custom-control, .catalog-qty-group, button, input').length > 0) {
+                    return;
+                }
+                let chk = $(this).find('.product-checkbox');
+                chk.prop('checked', !chk.prop('checked')).trigger('change');
+            });
+
+            // Checkbox change handler for individual product
+            $(document).on('change', '.product-checkbox', function() {
+                let prodId = parseInt($(this).val());
+                let row = $(`#product-row-${prodId}`);
+                let isChecked = $(this).prop('checked');
+
+                if (isChecked) {
+                    let existingData = modalSelectedProducts.get(prodId);
+                    let qty = existingData ? existingData.quantity : 1;
+
+                    modalSelectedProducts.set(prodId, {
+                        id: prodId,
                         name: row.data('name'),
                         sku: row.data('sku'),
                         unit: row.data('unit'),
-                        price: row.data('price')
+                        price: parseFloat(row.data('price')) || 0,
+                        formatted_price: row.data('formatted-price'),
+                        quantity: qty
                     });
+
+                    row.addClass('is-selected');
+                    $(`#catalog-qty-ph-${prodId}`).hide();
+                    $(`#catalog-qty-box-${prodId}`).show();
+                    $(`#catalog-qty-${prodId}`).val(qty).removeClass('is-invalid');
+                } else {
+                    modalSelectedProducts.delete(prodId);
+                    row.removeClass('is-selected');
+                    $(`#catalog-qty-box-${prodId}`).hide();
+                    $(`#catalog-qty-ph-${prodId}`).show();
+                }
+
+                updateSelectedPanel();
+                updateCheckAllState();
+            });
+
+            // Check All Visible Products
+            $('#check-all').on('change', function() {
+                let isChecked = $(this).prop('checked');
+                $('.product-row:visible').each(function() {
+                    let chk = $(this).find('.product-checkbox');
+                    let prodId = parseInt($(this).data('id'));
+
+                    if (isChecked) {
+                        chk.prop('checked', true);
+                        if (!modalSelectedProducts.has(prodId)) {
+                            modalSelectedProducts.set(prodId, {
+                                id: prodId,
+                                name: $(this).data('name'),
+                                sku: $(this).data('sku'),
+                                unit: $(this).data('unit'),
+                                price: parseFloat($(this).data('price')) || 0,
+                                formatted_price: $(this).data('formatted-price'),
+                                quantity: 1
+                            });
+                        }
+                        $(this).addClass('is-selected');
+                        $(`#catalog-qty-ph-${prodId}`).hide();
+                        $(`#catalog-qty-box-${prodId}`).show();
+                        let currentQty = modalSelectedProducts.get(prodId).quantity;
+                        $(`#catalog-qty-${prodId}`).val(currentQty).removeClass('is-invalid');
+                    } else {
+                        chk.prop('checked', false);
+                        modalSelectedProducts.delete(prodId);
+                        $(this).removeClass('is-selected');
+                        $(`#catalog-qty-box-${prodId}`).hide();
+                        $(`#catalog-qty-ph-${prodId}`).show();
+                    }
                 });
 
-                if (selectedProducts.length === 0) {
+                updateSelectedPanel();
+            });
+
+            function updateCheckAllState() {
+                let visibleRows = $('.product-row:visible');
+                let visibleCount = visibleRows.length;
+                let checkedVisible = visibleRows.find('.product-checkbox:checked').length;
+
+                if (visibleCount === 0) {
+                    $('#check-all').prop('checked', false).prop('indeterminate', false);
+                } else if (checkedVisible === visibleCount) {
+                    $('#check-all').prop('checked', true).prop('indeterminate', false);
+                } else if (checkedVisible > 0) {
+                    $('#check-all').prop('checked', false).prop('indeterminate', true);
+                } else {
+                    $('#check-all').prop('checked', false).prop('indeterminate', false);
+                }
+            }
+
+            // Synchronize Quantity Changes between Catalog & Panel
+            function setProductQuantity(prodId, qty) {
+                let parsed = parseInt(qty);
+                let item = modalSelectedProducts.get(prodId);
+                if (!item) return;
+
+                if (isNaN(parsed) || parsed < 1) {
+                    item.quantity = 0; // mark invalid
+                    $(`#catalog-qty-${prodId}`).addClass('is-invalid');
+                    $(`.panel-qty-input[data-id="${prodId}"]`).addClass('is-invalid');
+                } else {
+                    item.quantity = parsed;
+                    $(`#catalog-qty-${prodId}`).removeClass('is-invalid').val(parsed);
+                    $(`.panel-qty-input[data-id="${prodId}"]`).removeClass('is-invalid').val(parsed);
+                }
+
+                validateSelectionState();
+            }
+
+            // Catalog Quantity Input Handlers
+            $(document).on('input', '.catalog-qty-input', function() {
+                let prodId = parseInt($(this).data('id'));
+                setProductQuantity(prodId, $(this).val());
+            });
+
+            $(document).on('click', '.btn-catalog-qty-plus', function() {
+                let prodId = parseInt($(this).data('id'));
+                let input = $(`#catalog-qty-${prodId}`);
+                let current = parseInt(input.val()) || 0;
+                setProductQuantity(prodId, current + 1);
+            });
+
+            $(document).on('click', '.btn-catalog-qty-minus', function() {
+                let prodId = parseInt($(this).data('id'));
+                let input = $(`#catalog-qty-${prodId}`);
+                let current = parseInt(input.val()) || 1;
+                if (current > 1) {
+                    setProductQuantity(prodId, current - 1);
+                }
+            });
+
+            // Panel Quantity Input Handlers
+            $(document).on('input', '.panel-qty-input', function() {
+                let prodId = parseInt($(this).data('id'));
+                setProductQuantity(prodId, $(this).val());
+            });
+
+            $(document).on('click', '.btn-panel-qty-plus', function() {
+                let prodId = parseInt($(this).data('id'));
+                let input = $(`.panel-qty-input[data-id="${prodId}"]`);
+                let current = parseInt(input.val()) || 0;
+                setProductQuantity(prodId, current + 1);
+            });
+
+            $(document).on('click', '.btn-panel-qty-minus', function() {
+                let prodId = parseInt($(this).data('id'));
+                let input = $(`.panel-qty-input[data-id="${prodId}"]`);
+                let current = parseInt(input.val()) || 1;
+                if (current > 1) {
+                    setProductQuantity(prodId, current - 1);
+                }
+            });
+
+            // Remove Individual Item from Panel
+            $(document).on('click', '.btn-remove-selected', function() {
+                let prodId = parseInt($(this).data('id'));
+                modalSelectedProducts.delete(prodId);
+
+                // Uncheck in catalog
+                let chk = $(`#chk-prod-${prodId}`);
+                if (chk.length) {
+                    chk.prop('checked', false);
+                    let row = $(`#product-row-${prodId}`);
+                    row.removeClass('is-selected');
+                    $(`#catalog-qty-box-${prodId}`).hide();
+                    $(`#catalog-qty-ph-${prodId}`).show();
+                }
+
+                updateSelectedPanel();
+                updateCheckAllState();
+            });
+
+            // Clear All Selected
+            $('#btn-clear-all-selected').on('click', function() {
+                modalSelectedProducts.clear();
+                $('.product-checkbox').prop('checked', false);
+                $('.product-row').removeClass('is-selected');
+                $('.catalog-qty-group').hide();
+                $('.catalog-qty-placeholder').show();
+                updateSelectedPanel();
+                updateCheckAllState();
+            });
+
+            // Update Right Side Selected Panel UI
+            function updateSelectedPanel() {
+                let count = modalSelectedProducts.size;
+                $('#selected-badge-count').text(count);
+                $('#footer-selected-count').text(count);
+
+                if (count === 0) {
+                    $('#selected-empty-state').show();
+                    $('#selected-items-list').hide().empty();
+                    $('#btn-clear-all-selected').hide();
+                } else {
+                    $('#selected-empty-state').hide();
+                    $('#btn-clear-all-selected').show();
+
+                    let html = '';
+                    modalSelectedProducts.forEach(function(item) {
+                        html += `
+                            <div class="selected-item-card p-2 mb-2" id="selected-card-${item.id}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="pr-2 text-truncate" style="max-width: 82%;">
+                                        <div class="font-weight-bold text-dark text-truncate small" title="${escapeHtml(item.name)}">
+                                            ${escapeHtml(item.name)}
+                                        </div>
+                                        <div class="text-muted small">
+                                            <code>${escapeHtml(item.sku)}</code> &bull; ${item.formatted_price}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-xs btn-outline-danger btn-remove-selected" data-id="${item.id}" title="Hapus produk ini">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top">
+                                    <span class="small text-muted font-weight-bold">Jumlah:</span>
+                                    <div class="input-group input-group-sm" style="width: 140px;">
+                                        <div class="input-group-prepend">
+                                            <button type="button" class="btn btn-outline-secondary btn-panel-qty-minus" data-id="${item.id}">
+                                                <i class="fas fa-minus fa-xs"></i>
+                                            </button>
+                                        </div>
+                                        <input type="number" class="form-control text-center panel-qty-input px-1 ${item.quantity < 1 ? 'is-invalid' : ''}" 
+                                               data-id="${item.id}" min="1" step="1" value="${item.quantity || 1}">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-outline-secondary btn-panel-qty-plus" data-id="${item.id}">
+                                                <i class="fas fa-plus fa-xs"></i>
+                                            </button>
+                                            <span class="input-group-text py-0 px-1 small text-muted">${escapeHtml(item.unit)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    $('#selected-items-list').html(html).show();
+                }
+
+                validateSelectionState();
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                return $('<div>').text(text).html();
+            }
+
+            // Validate if all selected items have valid quantities
+            function validateSelectionState() {
+                let count = modalSelectedProducts.size;
+                let hasInvalidQty = false;
+
+                modalSelectedProducts.forEach(function(item) {
+                    if (isNaN(item.quantity) || item.quantity < 1) {
+                        hasInvalidQty = true;
+                    }
+                });
+
+                if (hasInvalidQty) {
+                    $('#footer-qty-error').removeClass('d-none');
+                    $('#btn-add-selected').prop('disabled', true);
+                } else {
+                    $('#footer-qty-error').addClass('d-none');
+                    if (count > 0) {
+                        $('#btn-add-selected').prop('disabled', false);
+                        $('#btn-add-text').text(`Tambahkan ${count} Produk ke PO`);
+                    } else {
+                        $('#btn-add-selected').prop('disabled', true);
+                        $('#btn-add-text').text('Tambahkan ke PO');
+                    }
+                }
+            }
+
+            // Submit Selected Products to PO Form
+            $('#btn-add-selected').on('click', function() {
+                if (modalSelectedProducts.size === 0) return;
+
+                let hasInvalid = false;
+                modalSelectedProducts.forEach(function(item) {
+                    if (isNaN(item.quantity) || item.quantity < 1) {
+                        hasInvalid = true;
+                    }
+                });
+
+                if (hasInvalid) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Perhatian!',
-                        text: 'Silakan pilih minimal 1 produk.'
+                        title: 'Jumlah Tidak Valid',
+                        text: 'Pastikan seluruh produk memiliki jumlah minimal 1.'
                     });
                     return;
                 }
 
-                // Add each product
-                selectedProducts.forEach(function(product) {
-                    addProductRow(product);
+                let addedCount = 0;
+                modalSelectedProducts.forEach(function(item) {
+                    addProductRow(item, item.quantity);
+                    addedCount++;
                 });
 
-                // Reset checkboxes and close modal
+                // Clear modal selections after adding to PO
+                modalSelectedProducts.clear();
                 $('.product-checkbox').prop('checked', false);
-                $('#check-all').prop('checked', false);
-                updateSelectedCount();
+                $('.product-row').removeClass('is-selected');
+                $('.catalog-qty-group').hide();
+                $('.catalog-qty-placeholder').show();
+                updateSelectedPanel();
+
+                // Close modal
                 $('#productModal').modal('hide');
 
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil!',
-                    text: selectedProducts.length + ' produk berhasil ditambahkan.'
+                    text: `${addedCount} produk berhasil ditambahkan ke Purchase Order.`,
+                    timer: 1800,
+                    showConfirmButton: false
                 });
+
+                // Restore focus to Tambah Produk button
+                if (lastFocusedTrigger) {
+                    $(lastFocusedTrigger).focus();
+                }
             });
 
             // Add product row
-            function addProductRow(product) {
+            function addProductRow(product, quantity) {
+                quantity = parseInt(quantity) || 1;
                 // Hide empty row
                 $('#empty-row').hide();
 
@@ -456,8 +1032,15 @@
                         exists = true;
                         var row = $(this).closest('.item-row');
                         var qtyInput = row.find('.item-qty');
-                        qtyInput.val(parseInt(qtyInput.val()) + 1);
+                        var currentQty = parseInt(qtyInput.val()) || 0;
+                        qtyInput.val(currentQty + quantity);
                         calculateRowSubtotal(row);
+
+                        // Visual highlight for updated row
+                        row.addClass('table-warning');
+                        setTimeout(function() {
+                            row.removeClass('table-warning');
+                        }, 1500);
                         return false;
                     }
                 });
@@ -471,6 +1054,7 @@
                     $row.find('.product-sku').text(product.sku);
                     $row.find('.item-unit').text(product.unit);
                     $row.find('.item-price').val(formatMoney(product.price));
+                    $row.find('.item-qty').val(quantity);
 
                     $('#items-body').append($row);
                     calculateRowSubtotal($row);
@@ -636,14 +1220,62 @@
                 }
             });
 
-            // Reset modal on open
+            // Handle Modal Close Confirmation if Unsaved Selections Exist
+            function handleModalCloseAttempt() {
+                if (modalSelectedProducts.size > 0) {
+                    Swal.fire({
+                        title: 'Tutup Pilihan Produk?',
+                        text: `Ada ${modalSelectedProducts.size} produk yang telah Anda pilih. Pilihan Anda tetap tersimpan saat modal dibuka kembali.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, Tutup Modal',
+                        cancelButtonText: 'Lanjut Memilih'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#productModal').modal('hide');
+                            if (lastFocusedTrigger) {
+                                $(lastFocusedTrigger).focus();
+                            }
+                        }
+                    });
+                } else {
+                    $('#productModal').modal('hide');
+                    if (lastFocusedTrigger) {
+                        $(lastFocusedTrigger).focus();
+                    }
+                }
+            }
+
+            $('#btn-modal-close-top, #btn-modal-cancel').on('click', function(e) {
+                e.preventDefault();
+                handleModalCloseAttempt();
+            });
+
+            // Keyboard Escape handling when modal is open
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#productModal').hasClass('show')) {
+                    e.preventDefault();
+                    handleModalCloseAttempt();
+                }
+            });
+
+            // Modal Lifecycle Events
             $('#productModal').on('show.bs.modal', function() {
-                $('.product-checkbox').prop('checked', false);
-                $('#check-all').prop('checked', false);
-                $('#modal-search').val('');
-                $('#modal-category').val('');
+                syncExistingPoItems();
                 filterProducts();
-                updateSelectedCount();
+                updateSelectedPanel();
+            });
+
+            $('#productModal').on('shown.bs.modal', function() {
+                $('#modal-search').focus();
+            });
+
+            $('#productModal').on('hidden.bs.modal', function() {
+                if (lastFocusedTrigger) {
+                    $(lastFocusedTrigger).focus();
+                }
             });
         });
     </script>

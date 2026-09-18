@@ -32,6 +32,11 @@ class CategoryController extends Controller
             $query->where('is_active', $request->status == '1');
         }
 
+        // Filter by asset
+        if ($request->filled('asset')) {
+            $query->where('asset', $request->asset);
+        }
+
         $categories = $query->withCount('products')
             ->orderBy('name')
             ->paginate(10)
@@ -63,11 +68,13 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories',
+            'asset' => 'nullable|in:HRGA,MIS',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ], [
             'name.required' => 'Nama kategori wajib diisi.',
             'name.unique' => 'Nama kategori sudah ada.',
+            'asset.in' => 'Pilihan Asset harus HRGA atau MIS.',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -98,11 +105,13 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'asset' => 'nullable|in:HRGA,MIS',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ], [
             'name.required' => 'Nama kategori wajib diisi.',
             'name.unique' => 'Nama kategori sudah ada.',
+            'asset.in' => 'Pilihan Asset harus HRGA atau MIS.',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);

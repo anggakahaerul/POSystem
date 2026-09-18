@@ -25,7 +25,7 @@ class PurchaseOrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['vendor', 'branch', 'creator']);
+        $query = PurchaseOrder::with(['vendor', 'branch', 'creator', 'approver', 'details.product']);
 
         // Search
         if ($request->filled('search')) {
@@ -209,7 +209,7 @@ class PurchaseOrderController extends Controller
      */
     public function show(PurchaseOrder $purchaseOrder)
     {
-        $purchaseOrder->load(['vendor', 'details.product', 'creator', 'approver']);
+        $purchaseOrder->load(['vendor', 'details.product', 'creator', 'approver', 'receiver', 'payments']);
 
         return view('purchase-orders.show', [
             'moduleName' => $this->moduleName,

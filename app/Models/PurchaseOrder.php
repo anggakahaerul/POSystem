@@ -205,6 +205,20 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Get status icon class
+     */
+    public function getStatusIconAttribute(): string
+    {
+        return match ($this->status) {
+            self::STATUS_DRAFT => 'fas fa-fw fa-pencil-alt',
+            self::STATUS_PENDING => 'fas fa-fw fa-clock',
+            self::STATUS_APPROVED => 'fas fa-fw fa-check-circle',
+            self::STATUS_REJECTED => 'fas fa-fw fa-times-circle',
+            default => 'fas fa-fw fa-question-circle',
+        };
+    }
+
+    /**
      * Get payment status badge
      */
     public function getPaymentStatusBadgeAttribute(): string
@@ -227,6 +241,19 @@ class PurchaseOrder extends Model
             self::PAYMENT_PARTIAL => 'Sebagian',
             self::PAYMENT_UNPAID => 'Belum Lunas',
             default => 'Unknown',
+        };
+    }
+
+    /**
+     * Get payment status icon class
+     */
+    public function getPaymentStatusIconAttribute(): string
+    {
+        return match ($this->payment_status) {
+            self::PAYMENT_PAID => 'fas fa-fw fa-check-circle',
+            self::PAYMENT_PARTIAL => 'fas fa-fw fa-hourglass-half',
+            self::PAYMENT_UNPAID => 'fas fa-fw fa-times-circle',
+            default => 'fas fa-fw fa-question-circle',
         };
     }
 
@@ -257,11 +284,261 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Get receipt status icon class
+     */
+    public function getReceiptStatusIconAttribute(): string
+    {
+        return match ($this->receipt_status) {
+            self::RECEIPT_RECEIVED => 'fas fa-fw fa-check-double',
+            self::RECEIPT_PARTIAL => 'fas fa-fw fa-box-open',
+            self::RECEIPT_NOT_RECEIVED => 'fas fa-fw fa-box',
+            default => 'fas fa-fw fa-question-circle',
+        };
+    }
+
+    /**
      * Get formatted total
      */
     public function getFormattedTotalAttribute(): string
     {
         return 'Rp ' . number_format($this->total_amount, 0, ',', '.');
+    }
+
+    /**
+     * Get roadmap stepper details and current position info
+     */
+    public function getRoadmapAttribute(): array
+    {
+        // Step 1: PO Dibuat
+        $step1 = [
+            'step' => 1,
+            'name' => 'PO Dibuat',
+            'status' => 'completed',
+            'badge' => 'Draft Selesai',
+            'badge_class' => 'success',
+            'icon' => 'fas fa-check-circle',
+            'actor' => $this->creator->name ?? 'User',
+            'time' => $this->created_at ? $this->created_at->format('d/m/Y H:i') : '-',
+        ];
+
+        // Step 2: PO Disubmit
+        $isSubmitted = in_array($this->status, [self::STATUS_PENDING, self::STATUS_APPROVED, self::STATUS_REJECTED]);
+        $step2 = [
+            'step' => 2,
+            'name' => 'PO Disubmit',
+            'status' => $isSubmitted ? 'completed' : 'greyscale',
+            'badge' => $isSubmitted ? 'Telah Disubmit' : 'Belum Disubmit',
+            'badge_class' => $isSubmitted ? 'success' : 'secondary',
+            'icon' => $isSubmitted ? 'fas fa-check' : 'fas fa-hourglass-start',
+            'actor' => $isSubmitted ? ($this->creator->name ?? 'User') : '-',
+            'time' => $isSubmitted && $this->created_at ? $this->created_at->format('d/m/Y H:i') : '-',
+        ];
+
+        // Step 3: Persetujuan
+        $isApproved = ($this->status === self::STATUS_APPROVED);
+        $isRejected = ($this->status === self::STATUS_REJECTED);
+        $isPending = ($this->status === self::STATUS_PENDING);
+
+        if ($isApproved) {
+            $step3Status = 'completed';
+            $step3Badge = 'Disetujui';
+            $step3BadgeClass = 'success';
+            $step3Icon = 'fas fa-check-circle';
+            $step3Actor = $this->approver->name ?? 'Approver';
+            $step3Time = $this->approved_at ? $this->approved_at->format('d/m/Y H:i') : '-';
+        } elseif ($isRejected) {
+            $step3Status = 'rejected';
+            $step3Badge = 'Ditolak';
+            $step3BadgeClass = 'danger';
+            $step3Icon = 'fas fa-times-circle';
+            $step3Actor = $this->approver->name ?? 'Approver';
+            $step3Time = $this->approved_at ? $this->approved_at->format('d/m/Y H:i') : '-';
+        } elseif ($isPending) {
+            $step3Status = 'current status-warning';
+            $step3Badge = 'Menunggu Approval';
+            $step3BadgeClass = 'warning';
+            $step3Icon = 'fas fa-clock';
+            $step3Actor = 'Dalam Antrean';
+            $step3Time = '-';
+        } else {
+            $step3Status = 'greyscale';
+            $step3Badge = 'Draft';
+            $step3BadgeClass = 'secondary';
+            $step3Icon = 'fas fa-minus-circle';
+            $step3Actor = '-';
+            $step3Time = '-';
+        }
+        $step3 = [
+            'step' => 3,
+            'name' => 'Persetujuan',
+            'status' => $step3Status,
+            'badge' => $step3Badge,
+            'badge_class' => $step3BadgeClass,
+            'icon' => $step3Icon,
+            'actor' => $step3Actor,
+            'time' => $step3Time,
+        ];
+
+        // Step 4: Penerimaan Barang
+        $totalQtyOrdered = $this->details ? $this->details->sum('quantity') : 0;
+        $totalQtyReceived = $this->details ? $this->details->sum('received_quantity') : 0;
+        $receiptPercent = $totalQtyOrdered > 0 ? round(($totalQtyReceived / $totalQtyOrdered) * 100) : 0;
+
+        $isReceivedFull = ($this->status === self::STATUS_APPROVED && $this->receipt_status === self::RECEIPT_RECEIVED);
+        $isReceivedPartial = ($this->status === self::STATUS_APPROVED && $this->receipt_status === self::RECEIPT_PARTIAL);
+        $isWaitingReceipt = ($this->status === self::STATUS_APPROVED && $this->receipt_status === self::RECEIPT_NOT_RECEIVED);
+
+        if ($isReceivedFull) {
+            $step4Status = 'completed';
+            $step4Badge = 'Diterima Lengkap';
+            $step4BadgeClass = 'success';
+            $step4Icon = 'fas fa-check-circle';
+        } elseif ($isReceivedPartial) {
+            $step4Status = 'current status-info';
+            $step4Badge = 'Sebagian (' . $totalQtyReceived . '/' . $totalQtyOrdered . ')';
+            $step4BadgeClass = 'info';
+            $step4Icon = 'fas fa-boxes';
+        } elseif ($isWaitingReceipt) {
+            $step4Status = 'current status-pending';
+            $step4Badge = 'Belum Diterima';
+            $step4BadgeClass = 'secondary';
+            $step4Icon = 'fas fa-box';
+        } else {
+            $step4Status = 'greyscale';
+            $step4Badge = 'Belum Diterima';
+            $step4BadgeClass = 'secondary';
+            $step4Icon = 'fas fa-box';
+        }
+        $step4 = [
+            'step' => 4,
+            'name' => 'Penerimaan Barang',
+            'status' => $step4Status,
+            'badge' => $step4Badge,
+            'badge_class' => $step4BadgeClass,
+            'icon' => $step4Icon,
+            'percent' => $receiptPercent,
+            'received' => $totalQtyReceived,
+            'ordered' => $totalQtyOrdered,
+        ];
+
+        // Step 5: Pembayaran
+        $isPaidFull = ($this->payment_status === self::PAYMENT_PAID);
+        $isPaidPartial = ($this->payment_status === self::PAYMENT_PARTIAL);
+
+        if ($isPaidFull) {
+            $step5Status = 'completed';
+            $step5Badge = 'Lunas';
+            $step5BadgeClass = 'success';
+            $step5Icon = 'fas fa-check-circle';
+        } elseif ($isPaidPartial) {
+            $step5Status = 'current status-info';
+            $step5Badge = 'Sebagian';
+            $step5BadgeClass = 'info';
+            $step5Icon = 'fas fa-hourglass-half';
+        } elseif ($this->status === self::STATUS_APPROVED) {
+            $step5Status = 'current status-pending';
+            $step5Badge = 'Belum Lunas';
+            $step5BadgeClass = 'danger';
+            $step5Icon = 'fas fa-times-circle';
+        } else {
+            $step5Status = 'greyscale';
+            $step5Badge = 'Belum Lunas';
+            $step5BadgeClass = 'secondary';
+            $step5Icon = 'fas fa-times-circle';
+        }
+        $step5 = [
+            'step' => 5,
+            'name' => 'Pembayaran',
+            'status' => $step5Status,
+            'badge' => $step5Badge,
+            'badge_class' => $step5BadgeClass,
+            'icon' => $step5Icon,
+        ];
+
+        // Step 6: PO Selesai
+        $isFinished = ($this->status === self::STATUS_APPROVED && $this->receipt_status === self::RECEIPT_RECEIVED && $this->payment_status === self::PAYMENT_PAID);
+        $step6 = [
+            'step' => 6,
+            'name' => 'PO Selesai',
+            'status' => $isFinished ? 'completed' : 'greyscale',
+            'badge' => $isFinished ? 'Tuntas Penuh' : 'Dalam Proses',
+            'badge_class' => $isFinished ? 'success' : 'secondary',
+            'icon' => $isFinished ? 'fas fa-flag-checkered' : 'fas fa-hourglass-half',
+        ];
+
+        // Determine current stage info
+        if ($isFinished) {
+            $currentStep = 6;
+            $currentTitle = 'PO Selesai';
+            $currentLabel = 'Langkah 6/6: Tuntas Penuh';
+            $currentBadgeClass = 'success';
+            $progress = 100;
+        } elseif ($isRejected) {
+            $currentStep = 3;
+            $currentTitle = 'Persetujuan';
+            $currentLabel = 'Langkah 3/6: Ditolak';
+            $currentBadgeClass = 'danger';
+            $progress = 45;
+        } elseif ($isPending) {
+            $currentStep = 3;
+            $currentTitle = 'Persetujuan';
+            $currentLabel = 'Langkah 3/6: Menunggu Approval';
+            $currentBadgeClass = 'warning';
+            $progress = 35;
+        } elseif ($this->status === self::STATUS_DRAFT) {
+            $currentStep = 1;
+            $currentTitle = 'PO Dibuat';
+            $currentLabel = 'Langkah 1/6: Draft';
+            $currentBadgeClass = 'secondary';
+            $progress = 15;
+        } elseif ($isApproved) {
+            if ($isReceivedFull && $isPaidFull) {
+                $currentStep = 6;
+                $currentTitle = 'PO Selesai';
+                $currentLabel = 'Langkah 6/6: Selesai';
+                $currentBadgeClass = 'success';
+                $progress = 100;
+            } elseif ($isReceivedFull) {
+                $currentStep = 5;
+                $currentTitle = 'Pembayaran';
+                $currentLabel = 'Langkah 5/6: Pembayaran (' . $this->payment_status_label . ')';
+                $currentBadgeClass = 'info';
+                $progress = 85;
+            } elseif ($isPaidFull) {
+                $currentStep = 4;
+                $currentTitle = 'Penerimaan Barang';
+                $currentLabel = 'Langkah 4/6: Barang (' . $this->receipt_status_label . ')';
+                $currentBadgeClass = 'info';
+                $progress = 85;
+            } elseif ($isReceivedPartial || $isPaidPartial) {
+                $currentStep = 4;
+                $currentTitle = 'Penerimaan / Pembayaran';
+                $currentLabel = 'Langkah 4 & 5: Proses Sebagian';
+                $currentBadgeClass = 'info';
+                $progress = 65;
+            } else {
+                $currentStep = 4;
+                $currentTitle = 'Penerimaan Barang';
+                $currentLabel = 'Langkah 4/6: Disetujui (Siap Diterima)';
+                $currentBadgeClass = 'primary';
+                $progress = 50;
+            }
+        } else {
+            $currentStep = 1;
+            $currentTitle = 'Draft';
+            $currentLabel = 'Langkah 1/6: Draft';
+            $currentBadgeClass = 'secondary';
+            $progress = 15;
+        }
+
+        return [
+            'steps' => [$step1, $step2, $step3, $step4, $step5, $step6],
+            'current_step' => $currentStep,
+            'current_title' => $currentTitle,
+            'current_label' => $currentLabel,
+            'current_badge_class' => $currentBadgeClass,
+            'progress' => $progress,
+        ];
     }
 
     /**
