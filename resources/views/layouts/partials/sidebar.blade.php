@@ -7,18 +7,6 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <!-- Sidebar user panel -->
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-            <div class="image">
-                <img src="{{ asset('assets/AdminLTE3/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2" alt="User Image">
-            </div>
-            <div class="info">
-                <a href="#" class="d-block">{{ Auth::user()->name ?? 'Guest' }}</a>
-                @if(Auth::check() && Auth::user()->roles->count() > 0)
-                    <small class="text-muted">{{ Auth::user()->roles->first()->name ?? '' }}</small>
-                @endif
-            </div>
-        </div>
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
