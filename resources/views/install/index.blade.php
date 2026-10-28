@@ -528,7 +528,7 @@ Siap memulai instalasi. Klik tombol di bawah untuk menjalankan seluruh proses se
                             </div>
                             <div class="d-flex justify-content-between">
                                 <span class="text-muted small">Password:</span>
-                                <span class="font-weight-bold font-monospace text-dark">password</span>
+                                <span class="font-weight-bold font-monospace text-dark">Pangles1234</span>
                             </div>
                             <div class="mt-2 text-danger small font-italic">
                                 * Disarankan untuk segera mengubah kata sandi setelah berhasil login!

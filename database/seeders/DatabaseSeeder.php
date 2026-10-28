@@ -129,10 +129,10 @@ class DatabaseSeeder extends Seeder
         $this->command->info('');
         $this->command->info('Database seeded successfully!');
         $this->command->info('');
-        $this->command->info('Login credentials:');
-        $this->command->info('Admin: admin@example.com / password');
-        $this->command->info('Manager: manager@example.com / password');
-        $this->command->info('Purchasing: purchasing@example.com / password');
-        $this->command->info('Finance: finance@example.com / password');
+        $this->command->info('Login credentials (Password seragam: Pangles1234):');
+        $this->command->info('Admin: admin@example.com / Pangles1234 atau admin@pangles.com / Pangles1234');
+        $this->command->info('Manager: manager@example.com / Pangles1234');
+        $this->command->info('Purchasing: purchasing@example.com / Pangles1234');
+        $this->command->info('Finance: finance@example.com / Pangles1234');
     }
 }
