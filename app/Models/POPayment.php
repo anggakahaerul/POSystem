@@ -20,6 +20,7 @@ class POPayment extends Model
         'paid_at',
         'status',
         'note',
+        'proof_file',
     ];
 
     protected $casts = [
@@ -95,13 +96,25 @@ class POPayment extends Model
     }
 
     /**
+     * Get proof file URL
+     */
+    public function getProofUrlAttribute(): ?string
+    {
+        return $this->proof_file ? asset('storage/' . $this->proof_file) : null;
+    }
+
+    /**
      * Record payment
      */
-    public function recordPayment(float $amount, ?string $note = null): void
+    public function recordPayment(float $amount, ?string $note = null, ?string $proofFile = null): void
     {
         $this->paid_amount += $amount;
         $this->paid_at = now();
         $this->note = $note;
+
+        if ($proofFile) {
+            $this->proof_file = $proofFile;
+        }
 
         if ($this->paid_amount >= $this->amount) {
             $this->status = 'paid';

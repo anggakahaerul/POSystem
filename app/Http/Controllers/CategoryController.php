@@ -2,140 +2,119 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CategoryRequest;
+use App\Models\AssetType;
 use App\Models\Category;
+use App\Services\CategoryService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    protected string $moduleName = 'Kategori';
-    protected string $moduleRoute = 'categories';
+    public function __construct(
+        protected CategoryService $categoryService
+    ) {}
 
     /**
-     * Display a listing of categories with pagination.
+     * Display a listing of categories.
      */
     public function index(Request $request)
     {
-        $query = Category::query();
-
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status == '1');
-        }
-
-        // Filter by asset
-        if ($request->filled('asset')) {
-            $query->where('asset', $request->asset);
-        }
-
-        $categories = $query->withCount('products')
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
+        $filters = $request->only(['search', 'status', 'asset']);
+        $categories = $this->categoryService->getPaginatedList($filters, 10);
+        $assetTypes = AssetType::active()->orderBy('name')->get();
 
         return view('categories.index', [
             'categories' => $categories,
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new category.
-     */
-    public function create()
-    {
-        return view('categories.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-            'category' => null,
+            'assetTypes' => $assetTypes,
+            'moduleName' => 'Kategori',
+            'moduleRoute' => 'categories',
         ]);
     }
 
     /**
      * Store a newly created category.
      */
-    public function store(Request $request)
+    public function store(CategoryRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories',
-            'asset' => 'nullable|in:HRGA,MIS',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ], [
-            'name.required' => 'Nama kategori wajib diisi.',
-            'name.unique' => 'Nama kategori sudah ada.',
-            'asset.in' => 'Pilihan Asset harus HRGA atau MIS.',
-        ]);
+        $category = $this->categoryService->createCategory($request->validated());
 
-        $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_active'] = $request->boolean('is_active', true);
-
-        Category::create($validated);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil ditambahkan.',
+                'data' => $category,
+            ]);
+        }
 
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the category.
+     * Get single category data for edit modal.
      */
-    public function edit(Category $category)
+    public function show(Category $category): JsonResponse
     {
-        return view('categories.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-            'category' => $category,
+        return response()->json([
+            'success' => true,
+            'data' => $category,
         ]);
     }
 
     /**
-     * Update the category.
+     * Show form for editing (supports both AJAX modal and legacy view).
      */
-    public function update(Request $request, Category $category)
+    public function edit(Category $category, Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
-            'asset' => 'nullable|in:HRGA,MIS',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ], [
-            'name.required' => 'Nama kategori wajib diisi.',
-            'name.unique' => 'Nama kategori sudah ada.',
-            'asset.in' => 'Pilihan Asset harus HRGA atau MIS.',
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $category,
+            ]);
+        }
+
+        return view('categories.form', [
+            'category' => $category,
+            'moduleName' => 'Kategori',
+            'moduleRoute' => 'categories',
         ]);
+    }
 
-        $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_active'] = $request->boolean('is_active', true);
+    /**
+     * Update the specified category.
+     */
+    public function update(CategoryRequest $request, Category $category)
+    {
+        $updated = $this->categoryService->updateCategory($category->id, $request->validated());
 
-        $category->update($validated);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil diperbarui.',
+                'data' => $updated,
+            ]);
+        }
 
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil diperbarui.');
     }
 
     /**
-     * Remove the category.
+     * Remove the specified category.
      */
-    public function destroy(Category $category)
+    public function destroy(Category $category, Request $request)
     {
-        if ($category->products()->count() > 0) {
-            return redirect()->route('categories.index')
-                ->with('error', 'Tidak dapat menghapus kategori yang memiliki produk.');
+        $result = $this->categoryService->deleteCategory($category->id);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
         }
 
-        $category->delete();
+        if (!$result['success']) {
+            return redirect()->route('categories.index')->with('error', $result['message']);
+        }
 
-        return redirect()->route('categories.index')
-            ->with('success', 'Kategori berhasil dihapus.');
+        return redirect()->route('categories.index')->with('success', $result['message']);
     }
 }

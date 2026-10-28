@@ -70,7 +70,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="unit">Satuan <span class="text-danger">*</span></label>
                                 <input type="text" name="unit" id="unit" 
@@ -83,25 +83,7 @@
                                 @enderror
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="price">Harga <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text">Rp</span>
-                                    </div>
-                                    <input type="text" name="price" id="price" 
-                                        class="form-control money-format @error('price') is-invalid @enderror" 
-                                        value="{{ old('price', $product ? number_format($product->price, 0, '', '.') : '') }}" 
-                                        placeholder="0"
-                                        required>
-                                    @error('price')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="stock">Stok <span class="text-danger">*</span></label>
                                 <input type="number" name="stock" id="stock" 

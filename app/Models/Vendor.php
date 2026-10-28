@@ -9,6 +9,16 @@ class Vendor extends Model
 {
     use HasFactory;
 
+    public const NPWP_TYPE_ORANG_PRIBADI = 'Orang Pribadi';
+    public const NPWP_TYPE_BADAN = 'Badan';
+    public const NPWP_TYPE_INSTANSI_PEMERINTAH = 'Instansi Pemerintah';
+
+    public const NPWP_TYPES = [
+        self::NPWP_TYPE_ORANG_PRIBADI,
+        self::NPWP_TYPE_BADAN,
+        self::NPWP_TYPE_INSTANSI_PEMERINTAH,
+    ];
+
     protected $fillable = [
         'code',
         'name',
@@ -17,13 +27,24 @@ class Vendor extends Model
         'address',
         'contact_person',
         'npwp',
+        'npwp_type',
         'bank_info',
+        'payment_term_id',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'payment_term_id' => 'integer',
     ];
+
+    /**
+     * Relationship: Vendor belongs to default payment term
+     */
+    public function paymentTerm()
+    {
+        return $this->belongsTo(PaymentTerm::class, 'payment_term_id');
+    }
 
     /**
      * Relationship: Vendor has many purchase orders

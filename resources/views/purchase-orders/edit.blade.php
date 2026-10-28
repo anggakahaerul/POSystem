@@ -9,6 +9,26 @@
 @endsection
 
 @section('content')
+    @if ($po->revision_count > 0 && $po->revision_reason)
+        <div class="alert alert-warning border shadow-sm mb-3 p-3" style="border-radius: 8px;">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-undo-alt fa-2x mr-3 text-warning mt-1"></i>
+                <div>
+                    <strong class="d-block text-dark font-weight-bold" style="font-size: 1rem;">
+                        Mode Revisi PO (Revisi ke-{{ $po->revision_count }})
+                    </strong>
+                    <div class="text-dark mt-1" style="font-size: 0.9rem;">
+                        Alasan Revisi: <em>&ldquo;{{ $po->revision_reason }}&rdquo;</em>
+                    </div>
+                    <small class="text-muted mt-1 d-block">
+                        Ditarik untuk revisi oleh <strong>{{ $po->revisedBy->name ?? 'User' }}</strong> pada {{ $po->revised_at ? $po->revised_at->format('d/m/Y H:i') : '-' }} WIB.
+                        Silakan sesuaikan data item, harga, atau syarat di bawah, lalu klik <strong>Simpan Perubahan</strong> untuk mengajukan approval kembali.
+                    </small>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form action="{{ route('purchase-orders.update', $po->id) }}" method="POST" id="po-form">
         @csrf
         @method('PUT')
@@ -48,6 +68,7 @@
                                         <option value="">-- Pilih Vendor --</option>
                                         @foreach ($vendors as $vendor)
                                             <option value="{{ $vendor->id }}"
+                                                data-payment-term="{{ $vendor->payment_term_id }}"
                                                 {{ old('vendor_id', $po->vendor_id) == $vendor->id ? 'selected' : '' }}>
                                                 {{ $vendor->code }} - {{ $vendor->name }}
                                             </option>
@@ -104,17 +125,18 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-bordered mb-0" id="items-table">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th width="30%">Produk</th>
-                                    <th width="10%">Qty</th>
-                                    <th width="18%">Harga Satuan</th>
-                                    <th width="18%">Diskon</th>
-                                    <th width="18%">Subtotal</th>
-                                    <th width="6%"></th>
-                                </tr>
-                            </thead>
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0" id="items-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="min-width: 170px;">Produk</th>
+                                        <th style="width: 105px; min-width: 105px;">Qty</th>
+                                        <th style="width: 155px; min-width: 155px;">Harga Satuan</th>
+                                        <th style="width: 135px; min-width: 135px;">Diskon</th>
+                                        <th style="width: 130px; min-width: 130px;" class="text-right">Subtotal</th>
+                                        <th style="width: 45px; min-width: 45px;" class="text-center"></th>
+                                    </tr>
+                                </thead>
                             <tbody id="items-body">
                                 @forelse($po->details as $index => $detail)
                                     <tr class="item-row">
@@ -151,33 +173,33 @@
                                             <div class="input-group input-group-sm">
                                                 <select name="products[{{ $index }}][discount_type]"
                                                     class="form-control item-discount-type" style="max-width: 60px;">
-                                                    <option value="">-</option>
-                                                    <option value="percentage"
-                                                        {{ $detail->discount_type == 'percentage' ? 'selected' : '' }}>%
-                                                    </option>
-                                                    <option value="fixed"
-                                                        {{ $detail->discount_type == 'fixed' ? 'selected' : '' }}>Rp
-                                                    </option>
-                                                </select>
-                                                <input type="text"
-                                                    name="products[{{ $index }}][discount_value]"
-                                                    class="form-control item-discount-value money-format"
-                                                    value="{{ number_format($detail->discount_value, 0, ',', '.') }}">
-                                            </div>
-                                        </td>
-                                        <td class="item-subtotal font-weight-bold">Rp
-                                            {{ number_format($detail->subtotal_after_discount ?: $detail->subtotal, 0, ',', '.') }}
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-danger btn-sm btn-remove-item"
-                                                title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr id="empty-row">
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                                <option value="">-</option>
+                                                <option value="percentage"
+                                                    {{ $detail->discount_type == 'percentage' ? 'selected' : '' }}>%
+                                                </option>
+                                                <option value="fixed"
+                                                    {{ $detail->discount_type == 'fixed' ? 'selected' : '' }}>Rp
+                                                </option>
+                                            </select>
+                                            <input type="text"
+                                                name="products[{{ $index }}][discount_value]"
+                                                class="form-control item-discount-value money-format"
+                                                value="{{ number_format($detail->discount_value, 0, ',', '.') }}">
+                                        </div>
+                                    </td>
+                                    <td class="item-subtotal font-weight-bold">Rp
+                                        {{ number_format($detail->subtotal_after_discount ?: $detail->subtotal, 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-danger btn-sm btn-remove-item"
+                                            title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr id="empty-row">
+                                    <td colspan="6" class="text-center text-muted py-4">
                                             <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
                                             Belum ada produk.
                                         </td>
@@ -185,13 +207,14 @@
                                 @endforelse
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Document Discount & PPN -->
+                <!-- Document Discount & PPN & PPh -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-percent mr-2"></i>Diskon & PPN Dokumen</h3>
+                        <h3 class="card-title"><i class="fas fa-percent mr-2"></i>Diskon & Pajak Dokumen</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -233,6 +256,67 @@
                                             max="100" step="0.1">
                                         <div class="input-group-append">
                                             <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PPh Section -->
+                        <div class="border-top pt-3 mt-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="is_pph" name="is_pph" value="1"
+                                            {{ old('is_pph', $po->is_pph) ? 'checked' : '' }}>
+                                        <label class="custom-control-label font-weight-bold" for="is_pph" style="cursor: pointer;">
+                                            <i class="fas fa-hand-holding-usd text-warning mr-1"></i> Kenakan PPh
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Potongan pajak penghasilan dari vendor (Withholding Tax)</small>
+                                </div>
+                                <div class="col-md-8">
+                                    <div id="pph-config-row" class="row align-items-center" style="{{ old('is_pph', $po->is_pph) ? '' : 'display: none;' }}">
+                                        <div class="col-md-7">
+                                            <label class="small text-muted mb-1 font-weight-bold">Jenis PPh:</label>
+                                            <select name="pph_type" id="pph_type" class="form-control form-control-sm">
+                                                <option value="pph23" data-rate="2" {{ old('pph_type', $po->pph_type ?? 'pph23') == 'pph23' ? 'selected' : '' }}>PPh 23 (2.0%) - Jasa / Sewa Alat</option>
+                                                <option value="pph22_15" data-rate="1.5" {{ old('pph_type', $po->pph_type) == 'pph22_15' ? 'selected' : '' }}>PPh 22 (1.5%) - Barang / Pengadaan</option>
+                                                <option value="pph22_05" data-rate="0.5" {{ old('pph_type', $po->pph_type) == 'pph22_05' ? 'selected' : '' }}>PPh 22 (0.5%) - PP 23 UMKM</option>
+                                                <option value="pph4_2" data-rate="10" {{ old('pph_type', $po->pph_type) == 'pph4_2' ? 'selected' : '' }}>PPh 4(2) (10.0%) - Sewa Tanah & Bangunan</option>
+                                                <option value="pph21_25" data-rate="2.5" {{ old('pph_type', $po->pph_type) == 'pph21_25' ? 'selected' : '' }}>PPh 21 (2.5%) - Upah / Tenaga Ahli</option>
+                                                <option value="pph21_50" data-rate="5" {{ old('pph_type', $po->pph_type) == 'pph21_50' ? 'selected' : '' }}>PPh 21 (5.0%) - Jasa Orang Pribadi</option>
+                                                <option value="custom" data-rate="" {{ old('pph_type', $po->pph_type) == 'custom' ? 'selected' : '' }}>PPh (%)</option>
+                                                <option value="custom_nominal" data-rate="" {{ old('pph_type', $po->pph_type) == 'custom_nominal' ? 'selected' : '' }}>PPh Nominal (Rp)</option>
+                                            </select>
+                                        </div>
+                                        @php
+                                            $isNominalMode = old('pph_type', $po->pph_type) == 'custom_nominal';
+                                        @endphp
+                                        <div class="col-md-5">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <label class="small text-muted mb-0 font-weight-bold" id="lbl_pph_input">{{ $isNominalMode ? 'Nominal PPh (Rp):' : 'Tarif PPh (%):' }}</label>
+                                                <div class="btn-group btn-group-sm" role="group" aria-label="Mode PPh">
+                                                    <button type="button" class="btn btn-xs {{ $isNominalMode ? 'btn-outline-secondary' : 'btn-primary' }} px-2 py-0" id="btn_pph_mode_pct" style="font-size: 11px; border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Input dalam Persen (%)">% Persen</button>
+                                                    <button type="button" class="btn btn-xs {{ $isNominalMode ? 'btn-primary' : 'btn-outline-secondary' }} px-2 py-0" id="btn_pph_mode_amt" style="font-size: 11px; border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Input dalam Nominal Rupiah (Rp)">Rp Nominal</button>
+                                                </div>
+                                            </div>
+                                            <div class="input-group input-group-sm" id="wrap_pph_pct" style="{{ $isNominalMode ? 'display: none;' : '' }}">
+                                                <input type="number" name="pph_percentage" id="pph_percentage"
+                                                    class="form-control" value="{{ old('pph_percentage', (float)($po->pph_percentage ?? 2)) }}" min="0"
+                                                    max="100" step="0.1" oninput="calculateGrandTotal()">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                            </div>
+                                            <div class="input-group input-group-sm" id="wrap_pph_amt" style="{{ $isNominalMode ? '' : 'display: none;' }}">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text">Rp</span>
+                                                </div>
+                                                <input type="text" name="pph_amount" id="pph_amount"
+                                                    class="form-control money-format" value="{{ old('pph_amount', number_format((float)($po->pph_amount ?? 0), 0, '', '.')) }}" placeholder="0" oninput="calculateGrandTotal()">
+                                            </div>
+                                            <small class="text-muted d-block mt-1" id="pph_live_hint" style="font-size: 11px;"></small>
                                         </div>
                                     </div>
                                 </div>
@@ -285,6 +369,11 @@
                                 <td class="text-right"><strong id="ppn-display">Rp
                                         {{ number_format($po->ppn_amount, 0, ',', '.') }}</strong></td>
                             </tr>
+                            <tr id="pph-row" style="{{ ($po->is_pph && $po->pph_amount > 0) || $po->details->where('is_pph', true)->count() > 0 ? '' : 'display: none;' }}">
+                                <td id="pph-label-text">PPh:</td>
+                                <td class="text-right text-danger">- <strong id="pph-display">Rp
+                                        {{ number_format($po->pph_amount, 0, ',', '.') }}</strong></td>
+                            </tr>
                             <tr class="border-top">
                                 <td><strong>Grand Total:</strong></td>
                                 <td class="text-right text-primary"><strong id="grand-total">Rp
@@ -301,9 +390,9 @@
     <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-boxes mr-2"></i>Pilih Produk</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-boxes text-primary mr-2"></i>Pilih Produk</h5>
+                    <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -342,18 +431,17 @@
                                     <th width="40" class="text-center">
                                         <input type="checkbox" id="check-all" title="Pilih Semua">
                                     </th>
-                                    <th width="100">SKU</th>
+                                    <th width="120">SKU</th>
                                     <th>Nama Produk</th>
                                     <th>Kategori</th>
-                                    <th width="80">Satuan</th>
-                                    <th width="120" class="text-right">Harga</th>
+                                    <th width="100">Satuan</th>
                                 </tr>
                             </thead>
                             <tbody id="products-body">
                                 @foreach ($products as $product)
                                     <tr class="product-row" data-id="{{ $product->id }}"
                                         data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
-                                        data-unit="{{ $product->unit }}" data-price="{{ $product->price }}"
+                                        data-unit="{{ $product->unit }}"
                                         data-category="{{ $product->category_id }}">
                                         <td class="text-center">
                                             <input type="checkbox" class="product-checkbox" value="{{ $product->id }}">
@@ -364,7 +452,6 @@
                                                 class="badge badge-secondary">{{ $product->category->name ?? '-' }}</span>
                                         </td>
                                         <td>{{ $product->unit }}</td>
-                                        <td class="text-right">{{ $product->formatted_price }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -481,8 +568,7 @@
                         id: row.data('id'),
                         name: row.data('name'),
                         sku: row.data('sku'),
-                        unit: row.data('unit'),
-                        price: row.data('price')
+                        unit: row.data('unit')
                     });
                 });
 
@@ -539,7 +625,7 @@
                     $row.find('.product-name').text(product.name);
                     $row.find('.product-sku').text(product.sku);
                     $row.find('.item-unit').text(product.unit);
-                    $row.find('.item-price').val(formatMoney(product.price));
+                    $row.find('.item-price').val('').attr('placeholder', '0');
 
                     $('#items-body').append($row);
                     calculateRowSubtotal($row);
@@ -572,8 +658,80 @@
                 calculateGrandTotal();
             });
 
-            // Document discount & PPN change
-            $('#discount_type, #discount_value, #ppn_percentage').on('input change', function() {
+            // Document discount, PPN & PPh change
+            $('#discount_type, #discount_value, #ppn_percentage, #pph_percentage, #pph_amount').on('input change', function() {
+                calculateGrandTotal();
+            });
+
+            // Toggle Document PPh
+            $('#is_pph').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#pph-config-row').slideDown(200);
+                    syncPphRate();
+                } else {
+                    $('#pph-config-row').slideUp(200);
+                }
+                calculateGrandTotal();
+            });
+
+            // Mode PPh Switcher Buttons (% Persen vs Rp Nominal)
+            $('#btn_pph_mode_pct').on('click', function(e) {
+                e.preventDefault();
+                setPphInputMode('percentage');
+            });
+
+            $('#btn_pph_mode_amt').on('click', function(e) {
+                e.preventDefault();
+                setPphInputMode('nominal');
+            });
+
+            function setPphInputMode(mode) {
+                if (mode === 'nominal') {
+                    $('#btn_pph_mode_amt').removeClass('btn-outline-secondary').addClass('btn-primary');
+                    $('#btn_pph_mode_pct').removeClass('btn-primary').addClass('btn-outline-secondary');
+                    $('#lbl_pph_input').text('Nominal PPh (Rp):');
+                    $('#wrap_pph_pct').hide();
+                    $('#wrap_pph_amt').show();
+                    $('#pph_type').val('custom_nominal');
+                    $('#pph_amount').focus();
+                } else {
+                    $('#btn_pph_mode_pct').removeClass('btn-outline-secondary').addClass('btn-primary');
+                    $('#btn_pph_mode_amt').removeClass('btn-primary').addClass('btn-outline-secondary');
+                    $('#lbl_pph_input').text('Tarif PPh (%):');
+                    $('#wrap_pph_amt').hide();
+                    $('#wrap_pph_pct').show();
+                    if ($('#pph_type').val() === 'custom_nominal') {
+                        $('#pph_type').val('custom');
+                    }
+                    $('#pph_percentage').focus();
+                }
+                calculateGrandTotal();
+            }
+
+            function syncPphRate() {
+                var selected = $('#pph_type option:selected');
+                var val = selected.val();
+                var rate = selected.data('rate');
+                if (val === 'custom_nominal') {
+                    $('#btn_pph_mode_amt').removeClass('btn-outline-secondary').addClass('btn-primary');
+                    $('#btn_pph_mode_pct').removeClass('btn-primary').addClass('btn-outline-secondary');
+                    $('#lbl_pph_input').text('Nominal PPh (Rp):');
+                    $('#wrap_pph_pct').hide();
+                    $('#wrap_pph_amt').show();
+                } else {
+                    $('#btn_pph_mode_pct').removeClass('btn-outline-secondary').addClass('btn-primary');
+                    $('#btn_pph_mode_amt').removeClass('btn-primary').addClass('btn-outline-secondary');
+                    $('#lbl_pph_input').text('Tarif PPh (%):');
+                    $('#wrap_pph_amt').hide();
+                    $('#wrap_pph_pct').show();
+                    if (rate !== undefined && rate !== '') {
+                        $('#pph_percentage').val(rate);
+                    }
+                }
+            }
+
+            $('#pph_type').on('change', function() {
+                syncPphRate();
                 calculateGrandTotal();
             });
 
@@ -664,7 +822,27 @@
                 var ppnPct = parseFloat($('#ppn_percentage').val()) || 0;
                 var ppnAmount = (afterDiscount * ppnPct) / 100;
 
-                var grandTotal = afterDiscount + ppnAmount;
+                // Document PPh
+                var isDocPph = $('#is_pph').is(':checked');
+                var pphType = $('#pph_type').val();
+                var isNominalMode = (pphType === 'custom_nominal') || $('#wrap_pph_amt').is(':visible');
+                var docPphAmount = 0;
+                var docPphPct = 0;
+                if (isDocPph) {
+                    if (isNominalMode) {
+                        docPphAmount = parseMoney($('#pph_amount').val());
+                        docPphPct = afterDiscount > 0 ? ((docPphAmount / afterDiscount) * 100).toFixed(2) : 0;
+                        $('#pph_live_hint').html(docPphAmount > 0 ? '<span class="text-info"><i class="fas fa-calculator mr-1"></i>Setara <strong>' + docPphPct + '%</strong> dari DPP</span>' : '');
+                    } else {
+                        docPphPct = parseFloat($('#pph_percentage').val()) || 0;
+                        docPphAmount = (docPphPct > 0) ? (afterDiscount * docPphPct) / 100 : 0;
+                        $('#pph_live_hint').html(docPphAmount > 0 ? '<span class="text-info"><i class="fas fa-calculator mr-1"></i>Estimasi: <strong>Rp ' + formatMoney(Math.round(docPphAmount)) + '</strong></span>' : '');
+                    }
+                } else {
+                    $('#pph_live_hint').html('');
+                }
+
+                var grandTotal = afterDiscount + ppnAmount - docPphAmount;
 
                 // Update display
                 $('#subtotal-display').text('Rp ' + formatMoney(subtotal));
@@ -678,6 +856,14 @@
                     $('#discount-display').text('Rp ' + formatMoney(Math.round(discountAmount)));
                 } else {
                     $('#discount-row').hide();
+                }
+
+                if (docPphAmount > 0) {
+                    $('#pph-row').show();
+                    $('#pph-label-text').html('PPh:');
+                    $('#pph-display').text('Rp ' + formatMoney(Math.round(docPphAmount)));
+                } else {
+                    $('#pph-row').hide();
                 }
             }
 

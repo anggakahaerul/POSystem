@@ -41,6 +41,22 @@ class Branch extends Model
     }
 
     /**
+     * Relationship: Branch has many users / employees
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'branch_id');
+    }
+
+    /**
+     * Relationship: Branch has department manager settings
+     */
+    public function departmentBranches(): HasMany
+    {
+        return $this->hasMany(DepartmentBranch::class, 'branch_id');
+    }
+
+    /**
      * Get display name with code
      */
     public function getDisplayNameAttribute(): string

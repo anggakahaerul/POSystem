@@ -43,6 +43,7 @@ class SettingController extends Controller
         Setting::set('notify_submit', $request->boolean('notify_submit') ? '1' : '0', 'email');
         Setting::set('notify_approve', $request->boolean('notify_approve') ? '1' : '0', 'email');
         Setting::set('notify_reject', $request->boolean('notify_reject') ? '1' : '0', 'email');
+        Setting::set('notify_tax_review', $request->boolean('notify_tax_review') ? '1' : '0', 'email');
 
         return back()->with('success', 'Pengaturan email berhasil disimpan.');
     }

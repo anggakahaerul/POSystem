@@ -2,146 +2,108 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
+use App\Http\Requests\ProductRequest;
+use App\Models\AssetType;
 use App\Models\Category;
+use App\Models\Product;
+use App\Services\ProductService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    protected string $moduleName = 'Produk';
-    protected string $moduleRoute = 'products';
+    public function __construct(
+        protected ProductService $productService
+    ) {}
 
     /**
-     * Display a listing of products with pagination.
+     * Display a listing of products.
      */
     public function index(Request $request)
     {
-        $query = Product::with('category');
-
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter by category
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status == '1');
-        }
-
-        $products = $query->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
+        $filters = $request->only(['search', 'category_id', 'status', 'asset']);
+        $products = $this->productService->getPaginatedList($filters, 10);
         $categories = Category::active()->orderBy('name')->get();
+        $assetTypes = AssetType::active()->orderBy('name')->get();
+        $suggestedSku = $this->productService->generateSku();
 
         return view('products.index', [
             'products' => $products,
             'categories' => $categories,
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new product.
-     */
-    public function create()
-    {
-        $categories = Category::active()->orderBy('name')->get();
-        $suggestedSku = Product::generateSku();
-
-        return view('products.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-            'product' => null,
-            'categories' => $categories,
+            'assetTypes' => $assetTypes,
             'suggestedSku' => $suggestedSku,
+            'moduleName' => 'Produk',
+            'moduleRoute' => 'products',
         ]);
     }
 
     /**
      * Store a newly created product.
      */
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:50|unique:products',
-            'unit' => 'required|string|max:20',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'min_stock' => 'nullable|integer|min:0',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ], [
-            'category_id.required' => 'Kategori wajib dipilih.',
-            'name.required' => 'Nama produk wajib diisi.',
-            'sku.required' => 'SKU wajib diisi.',
-            'sku.unique' => 'SKU sudah digunakan.',
-            'unit.required' => 'Unit wajib diisi.',
-            'price.required' => 'Harga wajib diisi.',
-        ]);
+        $product = $this->productService->createProduct($request->validated());
 
-        // Clean price format (remove dots)
-        $validated['price'] = str_replace(['.', ','], '', $validated['price']);
-        $validated['is_active'] = $request->boolean('is_active', true);
-        $validated['min_stock'] = $validated['min_stock'] ?? 0;
-
-        Product::create($validated);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk berhasil ditambahkan.',
+                'data' => $product,
+            ]);
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Produk berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the product.
+     * Get single product data for edit modal or API.
      */
-    public function edit(Product $product)
+    public function show(Product $product): JsonResponse
     {
+        return response()->json([
+            'success' => true,
+            'data' => $product,
+        ]);
+    }
+
+    /**
+     * Show edit (supports AJAX modal or legacy view).
+     */
+    public function edit(Product $product, Request $request)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $product,
+            ]);
+        }
+
         $categories = Category::active()->orderBy('name')->get();
 
         return view('products.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
             'product' => $product,
             'categories' => $categories,
             'suggestedSku' => null,
+            'moduleName' => 'Produk',
+            'moduleRoute' => 'products',
         ]);
     }
 
     /**
      * Update the product.
      */
-    public function update(Request $request, Product $product)
+    public function update(ProductRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:50|unique:products,sku,' . $product->id,
-            'unit' => 'required|string|max:20',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'min_stock' => 'nullable|integer|min:0',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $updated = $this->productService->updateProduct($product->id, $request->validated());
 
-        $validated['price'] = str_replace(['.', ','], '', $validated['price']);
-        $validated['is_active'] = $request->boolean('is_active', true);
-        $validated['min_stock'] = $validated['min_stock'] ?? 0;
-
-        $product->update($validated);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk berhasil diperbarui.',
+                'data' => $updated,
+            ]);
+        }
 
         return redirect()->route('products.index')
             ->with('success', 'Produk berhasil diperbarui.');
@@ -150,17 +112,19 @@ class ProductController extends Controller
     /**
      * Remove the product.
      */
-    public function destroy(Product $product)
+    public function destroy(Product $product, Request $request)
     {
-        if ($product->purchaseOrderDetails()->count() > 0) {
-            return redirect()->route('products.index')
-                ->with('error', 'Tidak dapat menghapus produk yang sudah digunakan dalam PO.');
+        $result = $this->productService->deleteProduct($product->id);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
         }
 
-        $product->delete();
+        if (!$result['success']) {
+            return redirect()->route('products.index')->with('error', $result['message']);
+        }
 
-        return redirect()->route('products.index')
-            ->with('success', 'Produk berhasil dihapus.');
+        return redirect()->route('products.index')->with('success', $result['message']);
     }
 
     /**
@@ -185,7 +149,7 @@ class ProductController extends Controller
     public function getProducts(Request $request)
     {
         $search = $request->get('q', '');
-        
+
         $products = Product::active()
             ->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")

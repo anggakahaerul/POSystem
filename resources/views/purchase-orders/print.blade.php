@@ -32,8 +32,9 @@
         }
 
         .header-logo {
-            max-height: 60px;
-            max-width: 200px;
+            max-height: 55px;
+            max-width: 260px;
+            object-fit: contain;
         }
 
         .header-company {
@@ -51,15 +52,28 @@
         /* Title Section */
         .title-section {
             text-align: center;
-            margin: 25px 0;
+            margin: 18px 0 22px 0;
         }
 
         .title-section h1 {
-            font-size: 26px;
-            font-weight: bold;
-            color: #b8860b;
-            letter-spacing: 3px;
+            font-family: 'Helvetica Neue', Helvetica, 'Segoe UI', Arial, sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
+            display: inline-block;
+            border-bottom: 2px solid #111827;
+            padding-bottom: 3px;
+            margin: 0;
+        }
+
+        .title-section .title-npwp {
+            font-size: 10px;
+            color: #4b5563;
+            font-weight: 600;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
         }
 
         /* Info Section - Two Columns */
@@ -140,13 +154,14 @@
         }
 
         .po-info-table .value {
-            font-weight: bold;
-            color: #d35400;
+            font-weight: 600;
+            color: #222;
         }
 
         .po-info-table .po-number {
             font-size: 13px;
-            color: #333;
+            font-weight: bold;
+            color: #111;
         }
 
         .referensi-box {
@@ -162,7 +177,7 @@
 
         .referensi-box .ref-value {
             font-weight: bold;
-            color: #d35400;
+            color: #222;
         }
 
         /* Items Table */
@@ -292,48 +307,116 @@
             border-top: 2px solid #ddd;
         }
 
-        /* Signature Section */
+        /* Signature & Confirmation Section */
         .signature-section {
-            margin-top: 40px;
+            margin-top: 30px;
+        }
+
+        .signatures-wrapper {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+        }
+
+        .signatures-wrapper td {
+            border: none;
+            padding: 0;
+        }
+
+        .sig-col-left {
+            width: 55%;
+            vertical-align: top;
+        }
+
+        .sig-col-right {
+            width: 45%;
+            vertical-align: bottom;
+            text-align: right;
         }
 
         .sig-company {
             font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 11px;
+            margin-bottom: 6px;
+            color: #333;
         }
 
-        .sig-boxes {
-            display: table;
-            width: 300px;
-        }
-
-        .sig-box {
-            display: table-cell;
-            width: 50%;
+        .sig-table {
+            width: 260px;
+            border-collapse: collapse;
+            border: 1px solid #333;
             text-align: center;
         }
 
-        .sig-box .sig-title {
-            /* border: 1px solid #333; */
-            border-bottom: none;
-            padding: 8px;
+        .sig-table th {
+            border: 1px solid #333;
+            padding: 6px;
+            font-size: 11px;
             font-weight: bold;
             background: #f9f9f9;
         }
 
-        .sig-box .sig-space {
-            /* border-left: 1px solid #333; */
-            /* border-right: 1px solid #333; */
-            height: 70px;
+        .sig-table .sig-space {
+            height: 72px;
+            border: 1px solid #333;
+            vertical-align: middle;
+            text-align: center;
+            padding: 3px 2px;
         }
 
-        .sig-box .sig-name {
-            /* border: 1px solid #333; */
-            padding: 8px;
+        .sig-table .sig-image {
+            max-height: 44px;
+            max-width: 110px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .sig-timestamp {
+            font-size: 7.5px;
+            color: #0038a8;
+            margin-top: 2px;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .sig-table .sig-name {
+            border: 1px solid #333;
+            padding: 5px 4px;
+            font-size: 10px;
             font-weight: bold;
-            text-decoration: underline;
-            min-height: 20px;
             background: #f9f9f9;
+            min-height: 18px;
+        }
+
+        .confirm-table {
+            width: 220px;
+            margin-left: auto;
+            border-collapse: collapse;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .confirm-table th {
+            border: 1px solid #333;
+            padding: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            background: #f9f9f9;
+        }
+
+        .confirm-table .confirm-space {
+            height: 93px;
+            border: 1px solid #333;
+            vertical-align: bottom;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .confirm-hint {
+            font-size: 9px;
+            color: #666;
+            font-style: italic;
         }
 
         /* Footer */
@@ -398,6 +481,13 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
+            @php
+                $defaultLogoFile = public_path('images/logo-pangan-lestari.png');
+                $defaultLogoData = file_exists($defaultLogoFile) 
+                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($defaultLogoFile)) 
+                    : asset('images/logo-pangan-lestari.png');
+            @endphp
+
             @if ($po->branch && $po->branch->logo_base64)
                 <img src="{{ $po->branch->logo_base64 }}" alt="Logo" class="header-logo">
             @elseif ($po->branch && $po->branch->logo)
@@ -413,16 +503,17 @@
                 @endphp
                 <img src="{{ $logoPath }}" alt="Logo" class="header-logo">
             @else
-                <div class="header-company">{{ $po->branch->name ?? config('app.name') }}</div>
-                @if ($po->branch && $po->branch->npwp)
-                    <div class="header-tagline">NPWP: {{ $po->branch->npwp }}</div>
-                @endif
+                <img src="{{ $defaultLogoData }}" alt="PT. PANGAN LESTARI" class="header-logo">
             @endif
+
         </div>
 
         <!-- Title -->
         <div class="title-section">
             <h1>{{ $po->status == 'draft' ? 'DRAFT ' : '' }}PURCHASE ORDER</h1>
+            @if ($po->branch && $po->branch->npwp)
+                <div class="title-npwp">NPWP: {{ $po->branch->npwp }}</div>
+            @endif
         </div>
 
         <!-- Info Section -->
@@ -454,6 +545,14 @@
                                 @endif
                             </div>
                         @endif
+                        @if ($po->vendor->npwp)
+                            <div class="contact-row">
+                                <span class="contact-label">NPWP</span>: {{ $po->vendor->npwp }}
+                                @if ($po->vendor->npwp_type)
+                                    <span style="font-size: 8pt; color: #555;">({{ $po->vendor->npwp_type }})</span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -465,6 +564,12 @@
                         <td class="label">PO :</td>
                         <td class="value po-number">{{ $po->po_number }}</td>
                     </tr>
+                    @if ($po->purchaseRequest)
+                        <tr>
+                            <td class="label">NO. PR:</td>
+                            <td class="value">{{ $po->purchaseRequest->pr_number }}</td>
+                        </tr>
+                    @endif
                     <tr>
                         <td class="label">DATE:</td>
                         <td class="value">
@@ -480,6 +585,19 @@
                     <tr>
                         <td class="label">TERM:</td>
                         <td class="value">{{ $po->paymentTerm->name ?? 'COD' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">REVISI:</td>
+                        <td class="value">
+                            @if ($po->revision_count > 0)
+                                Revisi ke {{ $po->revision_count }}
+                                @if ($po->revised_at)
+                                    <span style="font-size: 8pt; font-weight: normal; color: #555;">({{ $po->revised_at->format('d/m/Y') }})</span>
+                                @endif
+                            @else
+                                Revisi ke 0
+                            @endif
+                        </td>
                     </tr>
                 </table>
 
@@ -567,6 +685,12 @@
                             <td class="tot-value">{{ $po->ppn_percentage }}%</td>
                         </tr>
                     @endif
+                    @if ($po->pph_amount > 0)
+                        <tr>
+                            <td class="tot-label">PPh</td>
+                            <td class="tot-value" style="color: #c00;">-{{ number_format($po->pph_amount, 0, ',', '.') }}</td>
+                        </tr>
+                    @endif
                     <tr class="grand-total">
                         <td class="tot-label">GRAND TOTAL</td>
                         <td class="tot-value">{{ number_format($po->total_amount, 0, ',', '.') }}</td>
@@ -580,29 +704,75 @@
             <div class="watermark-rejected">REJECTED</div>
         @endif
 
-        <!-- Signature Section -->
+        <!-- Signature & Confirmation Section -->
         <div class="signature-section">
-            <div class="sig-company">{{ $po->branch->name ?? config('app.name') }}</div>
-            <div class="sig-boxes">
-                <div class="sig-box">
-                    <div class="sig-title">Dibuat</div>
-                    <div class="sig-space">
-                        @if ($po->creator_signature)
-                            <img src="{{ $po->creator_signature }}" alt="TTD" class="sig-image">
-                        @endif
-                    </div>
-                    <div class="sig-name">{{ $po->creator->name ?? '' }}</div>
-                </div>
-                <div class="sig-box">
-                    <div class="sig-title">Disetujui</div>
-                    <div class="sig-space">
-                        @if ($po->approver_signature)
-                            <img src="{{ $po->approver_signature }}" alt="TTD" class="sig-image">
-                        @endif
-                    </div>
-                    <div class="sig-name">{{ $po->approver->name ?? '' }}</div>
-                </div>
-            </div>
+            <table class="signatures-wrapper">
+                <tr>
+                    <td class="sig-col-left">
+                        <div class="sig-company">{{ $po->branch->name ?? config('app.name') }}</div>
+                        <table class="sig-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Dibuat</th>
+                                    <th style="width: 50%;">Disetujui</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="sig-space">
+                                        @if ($po->creator_signature)
+                                            @if (\Illuminate\Support\Str::startsWith($po->creator_signature, 'data:image'))
+                                                <img src="{{ $po->creator_signature }}" alt="TTD" class="sig-image">
+                                            @else
+                                                <img src="{{ asset('storage/' . $po->creator_signature) }}" alt="TTD" class="sig-image">
+                                            @endif
+                                            <div class="sig-timestamp">
+                                                Ditandatangani Pada: {{ $po->created_at ? $po->created_at->format('d/m/Y H:i') : '-' }} WIB
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="sig-space">
+                                        @if ($po->approver_signature)
+                                            @if (\Illuminate\Support\Str::endsWith(strtolower($po->approver_signature), '.pdf'))
+                                                <div style="font-size: 8pt; color: #166534; font-weight: bold; border: 1px dashed #166534; padding: 4px; border-radius: 4px; text-align: center;">
+                                                    Dokumen Disetujui<br>(PDF Terlampir)
+                                                </div>
+                                            @elseif (\Illuminate\Support\Str::startsWith($po->approver_signature, 'data:image'))
+                                                <img src="{{ $po->approver_signature }}" alt="TTD" class="sig-image">
+                                            @else
+                                                <img src="{{ asset('storage/' . $po->approver_signature) }}" alt="TTD" class="sig-image">
+                                            @endif
+                                            <div class="sig-timestamp">
+                                                Ditandatangani Pada: {{ $po->approved_at ? $po->approved_at->format('d/m/Y H:i') : '-' }} WIB
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="sig-name">{{ $po->creator->name ?? '' }}</td>
+                                    <td class="sig-name">{{ $po->approver->name ?? '' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    <td class="sig-col-right">
+                        <table class="confirm-table">
+                            <thead>
+                                <tr>
+                                    <th>Konfirmasi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="confirm-space">
+                                        <div class="confirm-hint">ttd,nama,tanggal diterima</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <!-- Footer -->

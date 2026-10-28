@@ -68,10 +68,13 @@ class POPaymentController extends Controller
         $validated = $request->validate([
             'paid_amount' => 'required|numeric|min:1',
             'note' => 'nullable|string',
+            'proof_file' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:5120',
         ], [
             'paid_amount.required' => 'Jumlah pembayaran wajib diisi.',
             'paid_amount.numeric' => 'Jumlah pembayaran harus berupa angka.',
             'paid_amount.min' => 'Jumlah pembayaran minimal Rp 1.',
+            'proof_file.mimes' => 'Bukti pembayaran harus berformat PDF, PNG, atau JPG.',
+            'proof_file.max' => 'Ukuran file bukti pembayaran maksimal 5MB.',
         ]);
 
         $paidAmount = (float) $validated['paid_amount'];
@@ -82,8 +85,17 @@ class POPaymentController extends Controller
             return back()->with('error', 'Jumlah pembayaran melebihi sisa tagihan.');
         }
 
+        // Handle proof file upload
+        $proofPath = null;
+        if ($request->hasFile('proof_file')) {
+            if ($payment->proof_file && \Illuminate\Support\Facades\Storage::disk('public')->exists($payment->proof_file)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($payment->proof_file);
+            }
+            $proofPath = $request->file('proof_file')->store('payment_proofs', 'public');
+        }
+
         // Record payment
-        $payment->recordPayment($paidAmount, $validated['note'] ?? null);
+        $payment->recordPayment($paidAmount, $validated['note'] ?? null, $proofPath);
 
         return back()->with('success', 'Pembayaran berhasil dicatat.');
     }

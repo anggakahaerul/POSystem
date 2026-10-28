@@ -77,7 +77,7 @@
             <!-- Table -->
             <div class="table-responsive">
                 <table class="table table-bordered table-striped table-hover table-valign-middle mb-0">
-                    <thead class="bg-primary text-white">
+                    <thead>
                         <tr>
                             <th width="45" class="text-center">#</th>
                             <th width="125">No. PO</th>
@@ -89,14 +89,21 @@
                             <th width="135" class="text-center">Status Pembayaran</th>
                             <th width="115">Dibuat Oleh</th>
                             <th width="90" class="text-center">Tanggal</th>
-                            <th width="130" class="text-center">Aksi</th>
+                            <th width="140" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($purchaseOrders as $index => $po)
                             <tr>
                                 <td class="text-center">{{ $purchaseOrders->firstItem() + $index }}</td>
-                                <td><code>{{ $po->po_number }}</code></td>
+                                <td>
+                                    <code>{{ $po->po_number }}</code>
+                                    @if ($po->revision_count > 0)
+                                        <br><span class="badge badge-warning text-dark font-weight-normal px-1 mt-1" style="font-size: 0.68rem;" title="PO telah direvisi {{ $po->revision_count }} kali">
+                                            <i class="fas fa-undo-alt mr-1"></i>Rev. {{ $po->revision_count }}
+                                        </span>
+                                    @endif
+                                </td>
                                 <td>
                                     <strong>{{ $po->vendor->name ?? '-' }}</strong>
                                 </td>
@@ -129,9 +136,9 @@
                                                             @if ($st['step'] == 3 && $po->status == 'pending')
                                                                 <i class="fas fa-clock"></i>
                                                             @elseif ($st['step'] == 4)
-                                                                <i class="fas fa-box-open"></i>
+                                                                <i class="fas fa-wallet"></i>
                                                             @elseif ($st['step'] == 5)
-                                                                <i class="fas fa-hourglass-half"></i>
+                                                                <i class="fas fa-box-open"></i>
                                                             @else
                                                                 <i class="fas fa-dot-circle"></i>
                                                             @endif
@@ -160,6 +167,14 @@
                                     <span class="badge badge-{{ $po->status_badge }} status-badge">
                                         <i class="{{ $po->status_icon }}"></i>{{ $po->status_label }}
                                     </span>
+                                    @if ($po->revision_count > 0)
+                                        <br><span class="badge badge-warning mt-1" title="PO telah direvisi {{ $po->revision_count }} kali"><i class="fas fa-history mr-1"></i>Rev. {{ $po->revision_count }}</span>
+                                    @endif
+                                    @if ($po->isWaitingTaxReview())
+                                        <br><span class="badge badge-warning mt-1" title="Menunggu Review Tim Tax"><i class="fas fa-search-dollar mr-1"></i>Review Tax</span>
+                                    @elseif ($po->is_pph && $po->isTaxReviewed() && $po->status === 'draft')
+                                        <br><span class="badge badge-success mt-1" title="PPh Terverifikasi Tim Tax"><i class="fas fa-check-circle mr-1"></i>Tax OK</span>
+                                    @endif
                                 </td>
                                 <td class="text-center">
                                     @php
@@ -275,30 +290,36 @@
                                 </td>
                                 <td>{{ $po->creator->name ?? '-' }}</td>
                                 <td class="text-center text-nowrap">{{ $po->created_at->format('d/m/Y') }}</td>
-                                <td class="text-center">
-                                    <div class="btn-group">
-                                        <a href="{{ route('purchase-orders.show', $po) }}" class="btn btn-info btn-sm"
-                                            title="Detail">
+                                <td class="text-center text-nowrap">
+                                    <div class="action-btn-group">
+                                        <a href="{{ route('purchase-orders.show', $po) }}" class="btn-action btn-action-info"
+                                            title="Detail PO">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         @if ($po->canEdit())
                                             <a href="{{ route('purchase-orders.edit', $po) }}"
-                                                class="btn btn-warning btn-sm" title="Edit">
+                                                class="btn-action btn-action-warning" title="Edit PO">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <form action="{{ route('purchase-orders.destroy', $po) }}" method="POST"
-                                                class="d-inline" id="delete-form-{{ $po->id }}">
+                                                class="d-inline-flex m-0 p-0" id="delete-form-{{ $po->id }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="button" class="btn btn-danger btn-sm" title="Hapus"
+                                                <button type="button" class="btn-action btn-action-danger" title="Hapus PO"
                                                     onclick="confirmDelete('delete-form-{{ $po->id }}')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
                                         @endif
+                                        @if ($po->canRevise())
+                                            <button type="button" class="btn-action btn-action-warning" title="Revisi PO (Tarik ke Draft)"
+                                                onclick="openRevisionModal({{ $po->id }}, '{{ $po->po_number }}', {{ $po->revision_count ?? 0 }})">
+                                                <i class="fas fa-undo-alt"></i>
+                                            </button>
+                                        @endif
                                         @if ($po->status == 'approved')
                                             <a href="{{ route('purchase-orders.print', $po) }}"
-                                                class="btn btn-success btn-sm" title="Print" target="_blank">
+                                                class="btn-action btn-action-success" title="Print PO" target="_blank">
                                                 <i class="fas fa-print"></i>
                                             </a>
                                         @endif
@@ -576,6 +597,86 @@
         font-weight: 600;
         letter-spacing: 0.2px;
     }
+
+    /* ============================================================
+       ACTION BUTTONS (TABLE)
+       ============================================================ */
+    .action-btn-group {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        vertical-align: middle;
+    }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        max-width: 32px;
+        min-height: 32px;
+        max-height: 32px;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        font-size: 0.85rem !important;
+        line-height: 1 !important;
+        border: none !important;
+        outline: none !important;
+        text-decoration: none !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+        color: #ffffff !important;
+    }
+
+    .btn-action i {
+        display: inline-block;
+        font-size: 0.85rem;
+        line-height: 1;
+        margin: 0;
+        padding: 0;
+        color: #ffffff !important;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.08);
+        color: #ffffff !important;
+        text-decoration: none !important;
+    }
+
+    .btn-action:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-action-info {
+        background-color: #17a2b8;
+    }
+
+    .btn-action-warning {
+        background-color: #e67e22;
+    }
+
+    .btn-action-danger {
+        background-color: #dc3545;
+    }
+
+    .btn-action-success {
+        background-color: #28a745;
+    }
+
+    .action-btn-group form {
+        display: inline-flex !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        vertical-align: middle;
+    }
 </style>
 @endpush
 
@@ -615,5 +716,77 @@ $(document).ready(function() {
         });
     });
 });
+
+function openRevisionModal(poId, poNumber, revCount) {
+    const baseAction = "{{ url('purchase-orders') }}/" + poId + "/revise";
+    $('#poRevisionForm').attr('action', baseAction);
+    $('#revPoNumber').text(poNumber);
+    $('#revReasonInput').val('');
+    
+    if (revCount > 0) {
+        $('#revBadgeCount').text('Revisi ke-' + (revCount + 1)).show();
+    } else {
+        $('#revBadgeCount').text('Revisi ke-1').show();
+    }
+    
+    $('#poRevisionModal').modal('show');
+}
 </script>
 @endpush
+
+<!-- Modal Revisi PO -->
+<div class="modal fade" id="poRevisionModal" tabindex="-1" role="dialog" aria-labelledby="poRevisionModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark py-3">
+                <h5 class="modal-title font-weight-bold" id="poRevisionModalTitle">
+                    <i class="fas fa-undo-alt mr-2"></i>Tarik PO untuk Revisi
+                </h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="poRevisionForm" method="POST" action="">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-light border mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-invoice text-primary fa-2x mr-3"></i>
+                            <div>
+                                <span class="d-block text-muted small">Nomor Dokumen:</span>
+                                <strong id="revPoNumber" class="text-dark" style="font-size: 15px;">-</strong>
+                                <span id="revBadgeCount" class="badge badge-secondary ml-1" style="display: none;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout callout-warning bg-light p-3 mb-3 small" style="border-left-color: #ffc107;">
+                        <strong>Perhatian:</strong>
+                        <ul class="pl-3 mb-0 mt-1 text-muted">
+                            <li>Status PO akan dikembalikan ke <strong>Draft</strong>.</li>
+                            <li>Tautan permohonan persetujuan (approval) email sebelumnya akan <strong>dibatalkan otomatis</strong>.</li>
+                            <li>Setelah Anda mengklik tombol di bawah, Anda akan langsung diarahkan ke halaman formulir edit PO.</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label for="revReasonInput" class="font-weight-bold text-dark">
+                            Alasan Revisi <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="reason" id="revReasonInput" class="form-control" rows="3" 
+                            placeholder="Contoh: Perubahan kuantitas item kabel dari 10 ke 15 pcs sesuai memo vendor..." required></textarea>
+                        <small class="form-text text-muted">Catatan ini akan tersimpan dalam riwayat revisi dokumen PO.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold px-4" id="btnSubmitRevise">
+                        <i class="fas fa-arrow-right mr-1"></i> Proses & Buka Form Edit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

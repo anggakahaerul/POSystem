@@ -2,122 +2,92 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
+use App\Services\BranchService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BranchController extends Controller
 {
+    public function __construct(
+        protected BranchService $branchService
+    ) {}
+
     /**
      * Display a listing of branches.
      */
     public function index(Request $request)
     {
-        $query = Branch::query();
+        $filters = $request->only(['search', 'status']);
+        $branches = $this->branchService->getPaginatedList($filters, 10);
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
-            });
-        }
-
-        $branches = $query->orderBy('code')
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('branches.index', compact('branches'));
-    }
-
-    /**
-     * Show the form for creating a new branch.
-     */
-    public function create()
-    {
-        return view('branches.form', [
-            'branch' => null,
+        return view('branches.index', [
+            'branches' => $branches,
+            'moduleName' => 'Cabang',
+            'moduleRoute' => 'branches',
         ]);
     }
 
     /**
      * Store a newly created branch.
      */
-    public function store(Request $request)
+    public function store(BranchRequest $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:branches,code',
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'npwp' => 'nullable|string|max:30',
-            'logo_base64' => 'nullable|string',
-            'footer_note' => 'nullable|string',
-            'is_active' => 'boolean',
-        ], [
-            'code.required' => 'Kode cabang wajib diisi.',
-            'code.unique' => 'Kode cabang sudah digunakan.',
-            'name.required' => 'Nama cabang wajib diisi.',
-        ]);
+        $branch = $this->branchService->createBranch($request->validated());
 
-        $validated['is_active'] = $request->boolean('is_active', true);
-        $validated['code'] = strtoupper($validated['code']);
-
-        // Handle logo upload - already in base64 format from client
-        if ($request->filled('logo_base64')) {
-            // Validate base64 format
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->logo_base64)) {
-                $validated['logo_base64'] = $request->logo_base64;
-                // Extract original filename from base64 prefix for display purposes
-                $validated['logo'] = 'logo_' . time() . '.png';
-            }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cabang berhasil ditambahkan.',
+                'data' => $branch,
+            ]);
         }
-
-        Branch::create($validated);
 
         return redirect()->route('branches.index')
             ->with('success', 'Cabang berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the branch.
+     * Display branch data for modal.
      */
-    public function edit(Branch $branch)
+    public function show(Branch $branch): JsonResponse
     {
+        return response()->json([
+            'success' => true,
+            'data' => $branch,
+        ]);
+    }
+
+    /**
+     * Show form for editing.
+     */
+    public function edit(Branch $branch, Request $request)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $branch,
+            ]);
+        }
+
         return view('branches.form', compact('branch'));
     }
 
     /**
      * Update the branch.
      */
-    public function update(Request $request, Branch $branch)
+    public function update(BranchRequest $request, Branch $branch)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:branches,code,' . $branch->id,
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'npwp' => 'nullable|string|max:30',
-            'logo_base64' => 'nullable|string',
-            'footer_note' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $updated = $this->branchService->updateBranch($branch->id, $request->validated());
 
-        $validated['is_active'] = $request->boolean('is_active', true);
-        $validated['code'] = strtoupper($validated['code']);
-
-        // Handle logo upload - already in base64 format from client
-        if ($request->filled('logo_base64')) {
-            // Validate base64 format
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->logo_base64)) {
-                $validated['logo_base64'] = $request->logo_base64;
-                // Extract original filename from base64 prefix for display purposes
-                $validated['logo'] = 'logo_' . time() . '.png';
-            }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cabang berhasil diperbarui.',
+                'data' => $updated,
+            ]);
         }
-
-        $branch->update($validated);
 
         return redirect()->route('branches.index')
             ->with('success', 'Cabang berhasil diperbarui.');
@@ -126,16 +96,18 @@ class BranchController extends Controller
     /**
      * Remove the branch.
      */
-    public function destroy(Branch $branch)
+    public function destroy(Branch $branch, Request $request)
     {
-        if ($branch->purchaseOrders()->count() > 0) {
-            return redirect()->route('branches.index')
-                ->with('error', 'Cabang masih memiliki PO, tidak dapat dihapus.');
+        $result = $this->branchService->deleteBranch($branch->id);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
         }
 
-        $branch->delete();
+        if (!$result['success']) {
+            return redirect()->route('branches.index')->with('error', $result['message']);
+        }
 
-        return redirect()->route('branches.index')
-            ->with('success', 'Cabang berhasil dihapus.');
+        return redirect()->route('branches.index')->with('success', $result['message']);
     }
 }

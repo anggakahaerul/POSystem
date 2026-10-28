@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'department_id',
+        'branch_id',
     ];
 
     /**
@@ -61,6 +63,70 @@ class User extends Authenticatable
     public function approvedPurchaseOrders()
     {
         return $this->hasMany(PurchaseOrder::class, 'approved_by');
+    }
+
+    /**
+     * Relationship: User belongs to a department
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
+     * Relationship: User belongs to a branch / cabang
+     */
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    /**
+     * Relationship: Departments where user is Default Manager L3
+     */
+    public function managedL3Departments()
+    {
+        return $this->hasMany(Department::class, 'manager_l3_id');
+    }
+
+    /**
+     * Relationship: Departments where user is Default Manager L4
+     */
+    public function managedL4Departments()
+    {
+        return $this->hasMany(Department::class, 'manager_l4_id');
+    }
+
+    /**
+     * Relationship: Departments where user is Default Manager L5
+     */
+    public function managedL5Departments()
+    {
+        return $this->hasMany(Department::class, 'manager_l5_id');
+    }
+
+    /**
+     * Relationship: Branch Department where user is Manager L3
+     */
+    public function branchDepartmentL3()
+    {
+        return $this->hasMany(DepartmentBranch::class, 'manager_l3_id');
+    }
+
+    /**
+     * Relationship: Branch Department where user is Manager L4
+     */
+    public function branchDepartmentL4()
+    {
+        return $this->hasMany(DepartmentBranch::class, 'manager_l4_id');
+    }
+
+    /**
+     * Relationship: Branch Department where user is Manager L5
+     */
+    public function branchDepartmentL5()
+    {
+        return $this->hasMany(DepartmentBranch::class, 'manager_l5_id');
     }
 
     /**

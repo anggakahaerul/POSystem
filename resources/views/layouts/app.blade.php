@@ -35,6 +35,8 @@
         href="{{ asset('assets/AdminLTE3') }}/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
     <!-- Theme style -->
     <link rel="stylesheet" href="{{ asset('assets/AdminLTE3') }}/dist/css/adminlte.min.css">
+    <!-- Modern UI Theme -->
+    <link rel="stylesheet" href="{{ asset('css/modern-theme.css') }}?v={{ filemtime(public_path('css/modern-theme.css')) }}">
 
     @stack('styles')
 </head>
@@ -111,6 +113,8 @@
     <script src="{{ asset('assets/AdminLTE3/plugins/inputmask/jquery.inputmask.min.js') }}"></script>
     <!-- AdminLTE App -->
     <script src="{{ asset('assets/AdminLTE3/dist/js/adminlte.min.js') }}"></script>
+    <!-- Modal CRUD Helper -->
+    <script src="{{ asset('js/modal-crud.js') }}"></script>
 
     <!-- Global Scripts -->
     <script>

@@ -2,136 +2,111 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UserRequest;
 use App\Models\User;
+use App\Services\UserService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    protected string $moduleName = 'User';
-    protected string $moduleRoute = 'users';
+    public function __construct(
+        protected UserService $userService
+    ) {}
 
     /**
      * Display a listing of users with pagination.
      */
     public function index(Request $request)
     {
-        $query = User::with('roles');
-
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter by role
-        if ($request->filled('role')) {
-            $query->role($request->role);
-        }
-
-        $users = $query->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
-        $roles = Role::all();
+        $filters = $request->only(['search', 'role', 'department_id', 'branch_id']);
+        $users = $this->userService->getPaginatedList($filters, 10);
+        $roles = Role::orderBy('name')->get();
+        $departments = \App\Models\Department::active()->orderBy('name')->get();
+        $branches = \App\Models\Branch::active()->orderBy('name')->get();
 
         return view('users.index', [
             'users' => $users,
             'roles' => $roles,
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new user.
-     */
-    public function create()
-    {
-        $roles = Role::all();
-
-        return view('users.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
-            'user' => null,
-            'roles' => $roles,
+            'departments' => $departments,
+            'branches' => $branches,
+            'moduleName' => 'User',
+            'moduleRoute' => 'users',
         ]);
     }
 
     /**
      * Store a newly created user.
      */
-    public function store(Request $request)
+    public function store(UserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-        ], [
-            'name.required' => 'Nama wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
-            'email.unique' => 'Email sudah terdaftar.',
-            'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal 8 karakter.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
-            'role.required' => 'Role wajib dipilih.',
-        ]);
+        $user = $this->userService->createUser($request->validated());
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        $user->assignRole($validated['role']);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User berhasil ditambahkan.',
+                'data' => $user,
+            ]);
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the user.
+     * Display user data for edit modal.
      */
-    public function edit(User $user)
+    public function show(User $user): JsonResponse
     {
+        $user->load(['roles', 'department', 'branch']);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'department_id' => $user->department_id,
+                'branch_id' => $user->branch_id,
+                'role' => $user->roles->first()?->name ?? '',
+            ],
+        ]);
+    }
+
+    /**
+     * Show form for editing (supports AJAX modal).
+     */
+    public function edit(User $user, Request $request)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return $this->show($user);
+        }
+
         $roles = Role::all();
 
         return view('users.form', [
-            'moduleName' => $this->moduleName,
-            'moduleRoute' => $this->moduleRoute,
             'user' => $user,
             'roles' => $roles,
+            'moduleName' => 'User',
+            'moduleRoute' => 'users',
         ]);
     }
 
     /**
      * Update the user.
      */
-    public function update(Request $request, User $user)
+    public function update(UserRequest $request, User $user)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-        ]);
+        $updated = $this->userService->updateUser($user->id, $request->validated());
 
-        $updateData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ];
-
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($validated['password']);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'User berhasil diperbarui.',
+                'data' => $updated,
+            ]);
         }
-
-        $user->update($updateData);
-        $user->syncRoles([$validated['role']]);
 
         return redirect()->route('users.index')
             ->with('success', 'User berhasil diperbarui.');
@@ -140,23 +115,18 @@ class UserController extends Controller
     /**
      * Remove the user.
      */
-    public function destroy(User $user)
+    public function destroy(User $user, Request $request)
     {
-        // Prevent self-deletion
-        if ($user->id === auth()->id()) {
-            return redirect()->route('users.index')
-                ->with('error', 'Anda tidak dapat menghapus akun sendiri.');
+        $result = $this->userService->deleteUser($user->id, auth()->id());
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
         }
 
-        // Check if user has POs
-        if ($user->createdPurchaseOrders()->count() > 0) {
-            return redirect()->route('users.index')
-                ->with('error', 'User tidak dapat dihapus karena memiliki riwayat PO.');
+        if (!$result['success']) {
+            return redirect()->route('users.index')->with('error', $result['message']);
         }
 
-        $user->delete();
-
-        return redirect()->route('users.index')
-            ->with('success', 'User berhasil dihapus.');
+        return redirect()->route('users.index')->with('success', $result['message']);
     }
 }

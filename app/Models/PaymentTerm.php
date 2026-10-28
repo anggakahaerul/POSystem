@@ -42,6 +42,14 @@ class PaymentTerm extends Model
     }
 
     /**
+     * Relationship: Payment term has many Vendors
+     */
+    public function vendors(): HasMany
+    {
+        return $this->hasMany(Vendor::class, 'payment_term_id');
+    }
+
+    /**
      * Get formatted display name
      */
     public function getDisplayNameAttribute(): string

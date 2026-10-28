@@ -32,35 +32,35 @@
             $step3Class = 'step-greyscale';
         }
 
-        // --- STEP 4: Penerimaan Barang ---
-        $totalQtyOrdered = $po->details->sum('quantity');
-        $totalQtyReceived = $po->details->sum('received_quantity');
-        $receiptPercent = $totalQtyOrdered > 0 ? round(($totalQtyReceived / $totalQtyOrdered) * 100) : 0;
-
-        $step4Done = ($po->status == 'approved' && $po->receipt_status == 'received');
-        $step4Partial = ($po->status == 'approved' && $po->receipt_status == 'partial');
-        $step4Waiting = ($po->status == 'approved' && $po->receipt_status == 'not_received');
+        // --- STEP 4: Pembayaran ---
+        $totalPaid = $po->total_paid ?? 0;
+        $step4Done = ($po->payment_status == 'paid');
+        $step4Partial = ($po->payment_status == 'partial');
 
         if ($step4Done) {
             $step4Class = 'step-completed';
         } elseif ($step4Partial) {
             $step4Class = 'step-current status-info';
-        } elseif ($step4Waiting) {
+        } elseif ($po->status == 'approved') {
             $step4Class = 'step-current status-pending';
         } else {
             $step4Class = 'step-greyscale';
         }
 
-        // --- STEP 5: Pembayaran ---
-        $totalPaid = $po->total_paid ?? 0;
-        $step5Done = ($po->payment_status == 'paid');
-        $step5Partial = ($po->payment_status == 'partial');
+        // --- STEP 5: Penerimaan Barang ---
+        $totalQtyOrdered = $po->details->sum('quantity');
+        $totalQtyReceived = $po->details->sum('received_quantity');
+        $receiptPercent = $totalQtyOrdered > 0 ? round(($totalQtyReceived / $totalQtyOrdered) * 100) : 0;
+
+        $step5Done = ($po->status == 'approved' && $po->receipt_status == 'received');
+        $step5Partial = ($po->status == 'approved' && $po->receipt_status == 'partial');
+        $step5Waiting = ($po->status == 'approved' && $po->receipt_status == 'not_received');
 
         if ($step5Done) {
             $step5Class = 'step-completed';
         } elseif ($step5Partial) {
             $step5Class = 'step-current status-info';
-        } elseif ($po->status == 'approved') {
+        } elseif ($step5Waiting) {
             $step5Class = 'step-current status-pending';
         } else {
             $step5Class = 'step-greyscale';
@@ -236,29 +236,57 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Penerimaan Barang -->
+                    <!-- Step 4: Pembayaran -->
                     <div class="roadmap-step {{ $step4Class }}">
                         <div class="roadmap-node">
                             @if ($step4Done)
-                                <i class="fas fa-check-double"></i>
+                                <i class="fas fa-money-check-alt"></i>
                             @elseif ($step4Partial)
+                                <i class="fas fa-hourglass-half"></i>
+                            @else
+                                <i class="fas fa-wallet"></i>
+                            @endif
+                        </div>
+                        <div class="roadmap-content">
+                            <span class="roadmap-step-num">Langkah 4</span>
+                            <h6 class="roadmap-title">Pembayaran</h6>
+                            @if ($step4Done)
+                                <span class="badge badge-success roadmap-badge">
+                                    <i class="fas fa-check-circle mr-1"></i>Lunas
+                                </span>
+                            @elseif ($step4Partial)
+                                <span class="badge badge-info roadmap-badge">
+                                    <i class="fas fa-coins mr-1"></i>Sebagian
+                                </span>
+                            @else
+                                <span class="badge badge-secondary roadmap-badge">Belum Lunas</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Penerimaan Barang -->
+                    <div class="roadmap-step {{ $step5Class }}">
+                        <div class="roadmap-node">
+                            @if ($step5Done)
+                                <i class="fas fa-check-double"></i>
+                            @elseif ($step5Partial)
                                 <i class="fas fa-box-open"></i>
                             @else
                                 <i class="fas fa-truck-loading"></i>
                             @endif
                         </div>
                         <div class="roadmap-content">
-                            <span class="roadmap-step-num">Langkah 4</span>
+                            <span class="roadmap-step-num">Langkah 5</span>
                             <h6 class="roadmap-title">Penerimaan</h6>
-                            @if ($step4Done)
+                            @if ($step5Done)
                                 <span class="badge badge-success roadmap-badge">
                                     <i class="fas fa-check-double mr-1"></i>Diterima Lengkap
                                 </span>
-                            @elseif ($step4Partial)
+                            @elseif ($step5Partial)
                                 <span class="badge badge-info roadmap-badge">
                                     <i class="fas fa-box-open mr-1"></i>Sebagian
                                 </span>
-                            @elseif ($step4Waiting)
+                            @elseif ($step5Waiting)
                                 <span class="badge badge-secondary roadmap-badge">
                                     <i class="fas fa-box mr-1"></i>Belum Diterima
                                 </span>
@@ -270,9 +298,9 @@
                             <div class="receipt-hover-container mt-1">
                                 <span class="receipt-hover-trigger" tabindex="0">
                                     <i class="fas fa-list-alt mr-1"></i>
-                                    @if ($step4Done)
+                                    @if ($step5Done)
                                         Lengkap ({{ $totalQtyReceived }}/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
-                                    @elseif ($step4Partial)
+                                    @elseif ($step5Partial)
                                         Histori ({{ $totalQtyReceived }}/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
                                     @else
                                         Rincian (0/{{ $totalQtyOrdered }}) <i class="fas fa-chevron-down ml-1"></i>
@@ -350,34 +378,6 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Pembayaran -->
-                    <div class="roadmap-step {{ $step5Class }}">
-                        <div class="roadmap-node">
-                            @if ($step5Done)
-                                <i class="fas fa-money-check-alt"></i>
-                            @elseif ($step5Partial)
-                                <i class="fas fa-hourglass-half"></i>
-                            @else
-                                <i class="fas fa-wallet"></i>
-                            @endif
-                        </div>
-                        <div class="roadmap-content">
-                            <span class="roadmap-step-num">Langkah 5</span>
-                            <h6 class="roadmap-title">Pembayaran</h6>
-                            @if ($step5Done)
-                                <span class="badge badge-success roadmap-badge">
-                                    <i class="fas fa-check-circle mr-1"></i>Lunas
-                                </span>
-                            @elseif ($step5Partial)
-                                <span class="badge badge-info roadmap-badge">
-                                    <i class="fas fa-coins mr-1"></i>Sebagian
-                                </span>
-                            @else
-                                <span class="badge badge-secondary roadmap-badge">Belum Lunas</span>
-                            @endif
-                        </div>
-                    </div>
-
                     <!-- Step 6: PO Selesai -->
                     <div class="roadmap-step {{ $step6Class }}">
                         <div class="roadmap-node">
@@ -414,9 +414,42 @@
                         <span class="badge badge-{{ $po->status_badge }} px-3 py-2">
                             <i class="{{ $po->status_icon }} mr-1"></i>{{ $po->status_label }}
                         </span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ml-2 font-weight-bold shadow-sm" data-toggle="modal" data-target="#revisionHistoryModal" style="border-radius: 6px;" title="Lihat riwayat revisi dokumen">
+                            <i class="fas fa-history mr-1 text-warning"></i> Riwayat Revisi 
+                            @if ($po->revision_count > 0)
+                                <span class="badge badge-warning ml-1">{{ $po->revision_count }}</span>
+                            @else
+                                <span class="badge badge-light border ml-1">0</span>
+                            @endif
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
+                    @if ($po->revision_count > 0)
+                        <div class="alert alert-warning border mb-3 p-3" style="border-radius: 8px;">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                                <div class="d-flex align-items-start mb-2 mb-md-0">
+                                    <i class="fas fa-history fa-2x mr-3 text-warning mt-1"></i>
+                                    <div>
+                                        <strong class="text-dark d-block mb-1">
+                                            Dokumen Telah Direvisi (Revisi ke-{{ $po->revision_count }})
+                                        </strong>
+                                        @if ($po->revision_reason)
+                                            <div class="text-dark" style="font-size: 0.9rem;">
+                                                &ldquo;{{ $po->revision_reason }}&rdquo;
+                                            </div>
+                                        @endif
+                                        <small class="text-muted mt-1 d-block">
+                                            Revisi terakhir oleh <strong>{{ $po->revisedBy->name ?? 'User' }}</strong> pada {{ $po->revised_at ? $po->revised_at->format('d/m/Y H:i') : '-' }} WIB
+                                        </small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-warning shadow-sm font-weight-bold px-3" data-toggle="modal" data-target="#revisionHistoryModal">
+                                    <i class="fas fa-list-ul mr-1"></i> Lihat Riwayat Revisi ({{ $po->revision_count }})
+                                </button>
+                            </div>
+                        </div>
+                    @endif
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table table-borderless table-sm">
@@ -440,13 +473,44 @@
                                     <th>Term Pembayaran</th>
                                     <td>: {{ $po->paymentTerm->display_name ?? 'Tidak ditentukan' }}</td>
                                 </tr>
+                                @if ($po->purchaseRequest)
+                                <tr>
+                                    <th>Permintaan Pembelian</th>
+                                    <td>: 
+                                        <a href="{{ route('purchase-requests.show', $po->purchaseRequest->id) }}" class="font-weight-bold text-primary">
+                                            <i class="fas fa-file-invoice mr-1"></i>{{ $po->purchaseRequest->pr_number }}
+                                        </a>
+                                        <span class="text-muted ml-1">({{ Str::limit($po->purchaseRequest->title, 25) }})</span>
+                                        @if ($po->purchaseRequest->attachment)
+                                            <a href="{{ route('purchase-requests.download', $po->purchaseRequest->id) }}" target="_blank" class="badge badge-info ml-1" title="Lihat Lampiran">
+                                                <i class="fas fa-paperclip mr-1"></i>Lampiran
+                                            </a>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endif
                             </table>
                         </div>
                         <div class="col-md-6">
                             <table class="table table-borderless table-sm">
                                 <tr>
                                     <th width="140">Dibuat Oleh</th>
-                                    <td>: {{ $po->creator->name ?? '-' }}</td>
+                                    <td>: {{ $po->creator->name ?? '-' }}
+                                        @if ($po->creator_signature)
+                                            <div class="mt-1">
+                                                @if (\Illuminate\Support\Str::startsWith($po->creator_signature, 'data:image'))
+                                                    <img src="{{ $po->creator_signature }}" alt="TTD Pembuat" style="max-height: 45px; max-width: 130px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px; background: #fff;" class="d-block">
+                                                @else
+                                                    <a href="{{ asset('storage/' . $po->creator_signature) }}" target="_blank">
+                                                        <img src="{{ asset('storage/' . $po->creator_signature) }}" alt="TTD Pembuat" style="max-height: 45px; max-width: 130px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px; background: #fff;" class="d-block">
+                                                    </a>
+                                                @endif
+                                                <small class="d-block text-primary font-weight-bold" style="font-size: 0.68rem; margin-top: 2px;">
+                                                    Ditandatangani Pada: {{ $po->created_at ? $po->created_at->format('d/m/Y H:i') : '-' }} WIB
+                                                </small>
+                                            </div>
+                                        @endif
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>Status PO</th>
@@ -465,15 +529,49 @@
                                             class="badge badge-{{ $po->receipt_status_badge ?? 'secondary' }}"><i class="{{ $po->receipt_status_icon }} mr-1"></i>{{ $po->receipt_status_label ?? 'Belum Diterima' }}</span>
                                     </td>
                                 </tr>
-                                @if ($po->approved_by)
+                                @if ($po->is_pph)
+                                <tr>
+                                    <th>Review Pajak (PPh)</th>
+                                    <td>: <span class="badge badge-{{ $po->tax_review_badge }}">{{ $po->tax_review_label }}</span>
+                                        @if($po->taxReviewer)
+                                            <small class="text-muted">({{ $po->taxReviewer->name }})</small>
+                                        @endif
+                                        <a href="{{ route('tax-reviews.index', ['search' => $po->po_number]) }}" class="btn btn-xs btn-outline-primary ml-1" title="Buka Review Pajak">
+                                            <i class="fas fa-balance-scale"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endif
+                                @if ($po->approved_by || $po->approver_signature)
                                     <tr>
                                         <th>{{ $po->status == 'approved' ? 'Disetujui' : 'Ditolak' }} Oleh</th>
-                                        <td>: {{ $po->approver->name ?? '-' }}</td>
+                                        <td>: {{ $po->approver->name ?? ($po->approver_email ?? '-') }}</td>
                                     </tr>
                                     <tr>
                                         <th>Tgl Approval</th>
                                         <td>: {{ $po->approved_at ? $po->approved_at->format('d/m/Y H:i') : '-' }}</td>
                                     </tr>
+                                    @if ($po->approver_signature)
+                                        <tr>
+                                            <th>Bukti / TTD Approval</th>
+                                            <td>:
+                                                @if (\Illuminate\Support\Str::endsWith(strtolower($po->approver_signature), '.pdf'))
+                                                    <a href="{{ asset('storage/' . $po->approver_signature) }}" target="_blank" class="btn btn-xs btn-outline-danger font-weight-bold">
+                                                        <i class="fas fa-file-pdf mr-1"></i> Buka Dokumen PDF
+                                                    </a>
+                                                @elseif (\Illuminate\Support\Str::startsWith($po->approver_signature, 'data:image'))
+                                                    <img src="{{ $po->approver_signature }}" alt="TTD" style="max-height: 45px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px; background: #fff;" class="d-block">
+                                                @else
+                                                    <a href="{{ asset('storage/' . $po->approver_signature) }}" target="_blank">
+                                                        <img src="{{ asset('storage/' . $po->approver_signature) }}" alt="TTD" style="max-height: 45px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px; background: #fff;" class="d-block">
+                                                    </a>
+                                                @endif
+                                                <small class="d-block text-primary font-weight-bold" style="font-size: 0.68rem; margin-top: 2px;">
+                                                    Ditandatangani Pada: {{ $po->approved_at ? $po->approved_at->format('d/m/Y H:i') : '-' }} WIB
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    @endif
                                 @endif
                                 @if ($po->payment_due_date)
                                     <tr>
@@ -502,6 +600,10 @@
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-boxes mr-2"></i>Detail Item</h3>
                 </div>
+                @php
+                    $hasItemPph = $po->details->where('is_pph', true)->count() > 0;
+                    $tableColspan = ($po->status == 'approved' ? 6 : 5) + ($hasItemPph ? 1 : 0);
+                @endphp
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-striped mb-0">
@@ -515,6 +617,9 @@
                                     @endif
                                     <th width="150" class="text-right">Harga Satuan</th>
                                     <th width="150" class="text-right">Diskon</th>
+                                    @if ($hasItemPph)
+                                        <th width="130" class="text-right">PPh</th>
+                                    @endif
                                     <th width="150" class="text-right">Subtotal</th>
                                 </tr>
                             </thead>
@@ -537,29 +642,45 @@
                                         @endif
                                         <td class="text-right">{{ $detail->formatted_unit_price }}</td>
                                         <td class="text-right">{{ $detail->formatted_discount_amount }}</td>
+                                        @if ($hasItemPph)
+                                            <td class="text-right">
+                                                @if ($detail->is_pph && $detail->pph_amount > 0)
+                                                    <span class="badge badge-warning">{{ $detail->pph_label }}</span>
+                                                    <br><small class="text-danger font-weight-bold">-Rp {{ number_format($detail->pph_amount, 0, ',', '.') }}</small>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                         <td class="text-right">{{ $detail->formatted_subtotal }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-muted font-weight-normal border-top">Subtotal:</th>
+                                    <th colspan="{{ $tableColspan }}" class="text-right text-muted font-weight-normal border-top">Subtotal:</th>
                                     <th class="text-right font-weight-normal border-top">Rp {{ number_format($po->subtotal ?? $po->total_amount, 0, ',', '.') }}</th>
                                 </tr>
                                 @if ($po->discount_amount > 0)
                                     <tr>
-                                        <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-danger font-weight-normal">Diskon:</th>
+                                        <th colspan="{{ $tableColspan }}" class="text-right text-danger font-weight-normal">Diskon:</th>
                                         <th class="text-right text-danger font-weight-normal">- Rp {{ number_format($po->discount_amount, 0, ',', '.') }}</th>
                                     </tr>
                                 @endif
                                 @if ($po->ppn_amount > 0)
                                     <tr>
-                                        <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right text-muted font-weight-normal">PPN ({{ (float)$po->ppn_percentage }}%):</th>
+                                        <th colspan="{{ $tableColspan }}" class="text-right text-muted font-weight-normal">PPN ({{ (float)$po->ppn_percentage }}%):</th>
                                         <th class="text-right font-weight-normal">Rp {{ number_format($po->ppn_amount, 0, ',', '.') }}</th>
                                     </tr>
                                 @endif
+                                @if ($po->pph_amount > 0)
+                                    <tr>
+                                        <th colspan="{{ $tableColspan }}" class="text-right text-danger font-weight-normal">PPh:</th>
+                                        <th class="text-right text-danger font-weight-normal">- Rp {{ number_format($po->pph_amount, 0, ',', '.') }}</th>
+                                    </tr>
+                                @endif
                                 <tr class="bg-light">
-                                    <th colspan="{{ $po->status == 'approved' ? 6 : 5 }}" class="text-right font-weight-bold">Total PO:</th>
+                                    <th colspan="{{ $tableColspan }}" class="text-right font-weight-bold">Total PO:</th>
                                     <th class="text-right text-primary font-weight-bold" style="font-size: 1.05rem;">{{ $po->formatted_total }}</th>
                                 </tr>
                             </tfoot>
@@ -589,19 +710,40 @@
                                         <th class="text-right">Nominal</th>
                                         <th class="text-right">Terbayar</th>
                                         <th class="text-center">Status</th>
+                                        <th class="text-center">Bukti</th>
                                         <th class="text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($po->payments as $payment)
                                         <tr>
-                                            <td>{{ $payment->description }}</td>
+                                            <td>
+                                                <div>{{ $payment->description }}</div>
+                                                @if ($payment->note)
+                                                    <small class="text-muted"><i class="fas fa-sticky-note mr-1"></i>{{ $payment->note }}</small>
+                                                @endif
+                                            </td>
                                             <td class="text-center">{{ $payment->percentage }}%</td>
                                             <td class="text-right">{{ $payment->formatted_amount }}</td>
                                             <td class="text-right">{{ $payment->formatted_paid_amount }}</td>
                                             <td class="text-center">
                                                 <span
                                                     class="badge badge-{{ $payment->status_badge }}">{{ $payment->status_label }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if ($payment->proof_file)
+                                                    @php
+                                                        $ext = strtolower(pathinfo($payment->proof_file, PATHINFO_EXTENSION));
+                                                        $isImage = in_array($ext, ['png', 'jpg', 'jpeg', 'webp']);
+                                                    @endphp
+                                                    <a href="{{ asset('storage/' . $payment->proof_file) }}" target="_blank"
+                                                        class="btn btn-xs btn-outline-info" title="Lihat Bukti Pembayaran">
+                                                        <i class="fas {{ $isImage ? 'fa-image' : 'fa-file-pdf' }} mr-1"></i>
+                                                        Bukti
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
                                             </td>
                                             <td class="text-center">
                                                 @if ($payment->status !== 'paid')
@@ -656,11 +798,54 @@
                         </a>
                     @endif
 
-                    @if ($po->canSubmit())
-                        <button type="button" class="btn btn-info btn-block mt-2" data-toggle="modal"
-                            data-target="#submitModal">
-                            <i class="fas fa-paper-plane mr-2"></i> Submit untuk Approval
+                    @if ($po->canRevise())
+                        <button type="button" class="btn btn-warning btn-block font-weight-bold shadow-sm mt-2" data-toggle="modal" data-target="#revisionModal">
+                            <i class="fas fa-undo-alt mr-2"></i> Revisi PO
                         </button>
+                    @endif
+
+                    @if ($po->status === \App\Models\PurchaseOrder::STATUS_DRAFT && $po->details->count() > 0)
+                        @if ($po->is_pph)
+                            @if ($po->isTaxReviewed())
+                                <div class="alert alert-success mt-2 mb-2 p-3 shadow-sm border-0" style="background-color: #28a745 !important; color: #ffffff !important; border-radius: 6px;">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-check-circle fa-2x mr-2 mt-1 text-white"></i>
+                                        <div>
+                                            <div class="font-weight-bold text-white mb-1" style="font-size: 0.95rem;">
+                                                Review Tim Tax Selesai
+                                            </div>
+                                            <div class="text-white" style="font-size: 0.85rem; line-height: 1.45; opacity: 0.95;">
+                                                Diverifikasi oleh <strong>{{ $po->taxReviewer?->name ?? 'Tim Tax' }}</strong> ({{ $po->tax_reviewed_at?->format('d/m/Y H:i') }}). Silakan ajukan approval atasan.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn btn-info btn-block mt-2 font-weight-bold shadow-sm" data-toggle="modal" data-target="#submitModal">
+                                    <i class="fas fa-paper-plane mr-2"></i> Submit untuk Approval
+                                </button>
+                            @else
+                                <div class="alert alert-warning mt-2 mb-2 p-2 border-0 shadow-sm" style="border-radius: 6px; font-size: 0.83rem; background-color: #fff3cd; color: #856404;">
+                                    @if ($po->tax_review_requested_at)
+                                        <i class="fas fa-clock mr-1 text-warning"></i> Permohonan review telah dikirim ke <strong>{{ $po->tax_reviewer_email }}</strong> ({{ $po->tax_review_requested_at->format('d/m/Y H:i') }}). Menunggu verifikasi tim tax.
+                                    @else
+                                        <i class="fas fa-exclamation-triangle mr-1 text-warning"></i> <strong>Review Pajak Diperlukan:</strong> PO mengenakan PPh dan harus direview Tim Tax sebelum diajukan approval atasan.
+                                    @endif
+                                </div>
+
+                                <button type="button" class="btn btn-warning btn-block font-weight-bold shadow-sm" data-toggle="modal" data-target="#taxReviewEmailModal">
+                                    <i class="fas fa-balance-scale mr-2"></i> {{ $po->tax_review_requested_at ? 'Kirim Ulang Email ke Tim Tax' : 'Ajukan Review ke Tim Tax' }}
+                                </button>
+
+                                <button type="button" class="btn btn-secondary btn-block mt-2 font-weight-bold" disabled title="Review tim tax diperlukan terlebih dahulu sebelum dapat diajukan ke approval atasan">
+                                    <i class="fas fa-lock mr-2"></i> Submit untuk Approval (Terkunci)
+                                </button>
+                            @endif
+                        @else
+                            <button type="button" class="btn btn-info btn-block mt-2 font-weight-bold shadow-sm" data-toggle="modal" data-target="#submitModal">
+                                <i class="fas fa-paper-plane mr-2"></i> Submit untuk Approval
+                            </button>
+                        @endif
                     @endif
 
                     @if ($po->canApprove() && Auth::user()->canApprovePO())
@@ -689,6 +874,10 @@
                             <i class="fas fa-print mr-2"></i> Print PDF
                         </a>
                     @endif
+
+                    <button type="button" class="btn btn-outline-secondary btn-block font-weight-bold shadow-sm mt-2" data-toggle="modal" data-target="#revisionHistoryModal">
+                        <i class="fas fa-history mr-2 text-warning"></i> Riwayat Revisi {{ $po->revision_count > 0 ? "({$po->revision_count})" : '' }}
+                    </button>
 
                     @if ($po->canReceive())
                         <hr>
@@ -749,6 +938,12 @@
                                 <td class="text-right">Rp {{ number_format($po->ppn_amount, 0, ',', '.') }}</td>
                             </tr>
                         @endif
+                        @if ($po->pph_amount > 0)
+                            <tr>
+                                <td>PPh</td>
+                                <td class="text-right text-danger">- Rp {{ number_format($po->pph_amount, 0, ',', '.') }}</td>
+                            </tr>
+                        @endif
                         <tr class="border-top">
                             <td><strong>Total PO</strong></td>
                             <td class="text-right"><strong>{{ $po->formatted_total }}</strong></td>
@@ -767,74 +962,249 @@
         </div>
     </div>
 
-    <!-- Submit Signature Modal -->
-    <div class="modal fade" id="submitModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form action="{{ route('purchase-orders.submit', $po->id) }}" method="POST" id="form-submit">
+    <!-- Send Tax Review Request Modal -->
+    <div class="modal fade" id="taxReviewEmailModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <form action="{{ route('purchase-orders.send-tax-review', $po->id) }}" method="POST" id="form-tax-review-email">
                     @csrf
-                    <input type="hidden" name="creator_signature" id="creator_signature_input">
-                    <div class="modal-header bg-info text-white">
-                        <h5 class="modal-title"><i class="fas fa-signature mr-2"></i>Tanda Tangan Pembuat</h5>
-                        <button type="button" class="close text-white" data-dismiss="modal">
+                    <div class="modal-header text-white px-4 py-3" style="background-color: #0f172a; border-bottom: 3px solid #f59e0b;">
+                        <div>
+                            <h5 class="modal-title font-weight-bold mb-0">
+                                <i class="fas fa-envelope-open-text mr-2 text-warning"></i>Kirim Review ke Pajak via Email
+                            </h5>
+                            <small class="text-white-50">PO No: <strong>{{ $po->po_number }}</strong> &bull; Total: <strong>{{ $po->formatted_total }}</strong></small>
+                        </div>
+                        <button type="button" class="close text-white" data-dismiss="modal" style="font-size: 1.5rem; opacity: 0.85;">
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body">
-                        <p class="mb-3">Silakan tanda tangan untuk submit PO <strong>{{ $po->po_number }}</strong>:</p>
-                        
-                        <!-- Tabs -->
-                        <ul class="nav nav-tabs mb-3" role="tablist">
-                            <li class="nav-item">
-                                <a class="nav-link active" data-toggle="tab" href="#creator-draw-tab">
-                                    <i class="fas fa-pen mr-1"></i> Gambar
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" data-toggle="tab" href="#creator-upload-tab">
-                                    <i class="fas fa-upload mr-1"></i> Upload
-                                </a>
-                            </li>
-                        </ul>
-                        
-                        <div class="tab-content">
-                            <!-- Draw Tab -->
-                            <div class="tab-pane fade show active" id="creator-draw-tab">
-                                <div class="signature-pad-container" style="border: 2px solid #ccc; border-radius: 5px;">
-                                    <canvas id="creator-signature-pad" style="width: 100%; height: 200px;"></canvas>
-                                </div>
-                                <div class="mt-2 text-right">
-                                    <button type="button" class="btn btn-sm btn-secondary" id="clear-creator-signature">
-                                        <i class="fas fa-eraser mr-1"></i> Hapus
-                                    </button>
+                    <div class="modal-body px-4 py-3">
+                        <div class="alert alert-light border py-2 px-3 mb-3" style="border-radius: 8px; font-size: 0.85rem; background-color: #f8fafc;">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle text-primary fa-lg mr-2"></i>
+                                <div>
+                                    Email akan dikirimkan ke Tim Pajak berisi ringkasan tarif PPh & PPN, serta lampiran <strong>PDF Purchase Order</strong> otomatis.
                                 </div>
                             </div>
-                            
-                            <!-- Upload Tab -->
-                            <div class="tab-pane fade" id="creator-upload-tab">
-                                <div class="form-group">
-                                    <label>Upload Gambar Tanda Tangan</label>
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="creator-signature-file" accept="image/*">
-                                        <label class="custom-file-label" for="creator-signature-file">Pilih file...</label>
+                        </div>
+
+                        <!-- Select Tax Reviewer -->
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark d-flex justify-content-between align-items-center mb-1">
+                                <span><i class="fas fa-user-shield text-primary mr-1"></i> Pilih Petugas Pajak / Reviewer <span class="text-danger">*</span></span>
+                                <small class="text-muted font-weight-normal">Dari akun Tim Tax / Admin</small>
+                            </label>
+                            <select class="form-control form-control-lg border-primary-subtle" id="select_tax_reviewer" style="font-size: 0.95rem; border-radius: 8px;">
+                                <option value="" {{ empty($po->tax_reviewer_email) ? 'selected' : '' }} disabled>-- Pilih Petugas Pajak Penerima --</option>
+                                @if(isset($taxReviewers) && $taxReviewers->count() > 0)
+                                    @foreach($taxReviewers as $tr)
+                                        <option value="{{ $tr->email }}" data-name="{{ $tr->name }}" {{ ($po->tax_reviewer_email === $tr->email) ? 'selected' : '' }}>
+                                            {{ $tr->name }} &mdash; {{ $tr->email }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                                <option value="__manual__">Tulis Alamat Email Manual Lainnya...</option>
+                            </select>
+                            <input type="hidden" name="reviewer_email" id="tax_reviewer_email_input" value="{{ $po->tax_reviewer_email ?? '' }}">
+                        </div>
+
+                        <!-- Manual Email Input -->
+                        <div class="form-group mb-3" id="manual_tax_email_wrapper" style="display: none;">
+                            <label class="small font-weight-bold text-dark mb-1">
+                                <i class="fas fa-envelope text-primary mr-1"></i> Masukkan Alamat Email Tim Pajak: <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" id="manual_tax_email_field" class="form-control" placeholder="contoh: tax@panganlestari.co.id">
+                        </div>
+
+                        <!-- Confirmation Checkbox -->
+                        <div class="alert alert-warning py-2 px-3 mb-3 border-warning" style="border-radius: 8px;">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="confirm_tax_reviewer_email_verified">
+                                <label class="custom-control-label font-weight-bold text-dark mb-0" for="confirm_tax_reviewer_email_verified" style="font-size: 0.86rem; cursor: pointer;">
+                                    Saya telah memeriksa & mengonfirmasi bahwa alamat email tim tax tujuan sudah benar.
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Optional Notes -->
+                        <div class="form-group mb-2">
+                            <label class="small font-weight-bold text-dark mb-1" for="tax_review_notes">
+                                <i class="fas fa-comment-alt text-secondary mr-1"></i> Catatan untuk Tim Pajak (Opsional)
+                            </label>
+                            <textarea name="notes" id="tax_review_notes" class="form-control" rows="3" placeholder="Misal: Mohon pengecekan tarif PPh 23 untuk jasa vendor, NPWP telah dilampirkan..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i> Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary px-4 font-weight-bold" id="btn-submit-tax-review-email">
+                            <i class="fas fa-paper-plane mr-2"></i> Kirim Permohonan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Signature & Approver Email Modal -->
+    <div class="modal fade" id="submitModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <form action="{{ route('purchase-orders.submit', $po->id) }}" method="POST" id="form-submit">
+                    @csrf
+                    <input type="hidden" name="creator_signature" id="creator_signature_input">
+                    <div class="modal-header text-white px-4 py-3" style="background-color: #1e293b;">
+                        <div>
+                            <h5 class="modal-title font-weight-bold mb-0">
+                                <i class="fas fa-paper-plane mr-2 text-warning"></i>Submit Purchase Order & Permohonan Approval
+                            </h5>
+                            <small class="text-white-50">PO No: <strong>{{ $po->po_number }}</strong> &bull; Total: <strong>{{ $po->formatted_total }}</strong></small>
+                        </div>
+                        <button type="button" class="close text-white" data-dismiss="modal" style="font-size: 1.5rem; opacity: 0.85;">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body px-4 py-3">
+                        <!-- Step 1: Select Approver -->
+                        <div class="form-group mb-3">
+                            @if(isset($matchingRule) && $matchingRule)
+                                <div class="alert alert-info py-2 px-3 mb-3 border-info" style="border-radius: 8px; font-size: 0.88rem; background-color: #f0f7ff;">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-sitemap text-primary mr-2 mt-1" style="font-size: 1.1rem;"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="font-weight-bold text-dark mb-1">
+                                                Matriks Aturan Approval: <span class="badge badge-primary">{{ $matchingRule->name }}</span>
+                                            </div>
+                                            <div class="text-secondary small mb-1">
+                                                <i class="fas fa-info-circle mr-1"></i> {{ $recommendedReason }}
+                                            </div>
+                                            @if(isset($recommendedApprover) && $recommendedApprover)
+                                                <div class="text-success small font-weight-bold">
+                                                    <i class="fas fa-check-circle mr-1"></i> Rekomendasi Terpilih: {{ $recommendedApprover->name }} &lt;{{ $recommendedApprover->email }}&gt;
+                                                </div>
+                                            @elseif(isset($requiredApproverLevel) && in_array(strtoupper($requiredApproverLevel), ['L3', 'L4', 'L5']))
+                                                <div class="text-warning small font-weight-bold">
+                                                    <i class="fas fa-exclamation-triangle mr-1"></i> Belum ada akun user yang ditugaskan sebagai {{ \App\Models\ApprovalRule::formatLevelLabel($requiredApproverLevel) }} untuk cabang ini di Master Departemen. Anda dapat memilih dari daftar atasan di bawah.
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
-                                    <small class="form-text text-muted">Format: JPG, PNG, GIF. Max 2MB</small>
                                 </div>
-                                <div id="creator-upload-preview" class="text-center mt-3" style="display: none;">
-                                    <img id="creator-upload-img" src="" alt="Preview" style="max-height: 150px; border: 1px solid #ddd; padding: 5px;">
-                                    <div class="mt-2">
-                                        <button type="button" class="btn btn-sm btn-danger" id="clear-creator-upload">
-                                            <i class="fas fa-times mr-1"></i> Hapus
-                                        </button>
+                            @endif
+
+                            <label class="font-weight-bold text-dark d-flex justify-content-between align-items-center mb-1">
+                                <span><i class="fas fa-user-check text-primary mr-1"></i> Pilih Manager / Atasan Approver <span class="text-danger">*</span></span>
+                                <small class="text-muted font-weight-normal">Dari daftar akun atasan di sistem</small>
+                            </label>
+                            <select class="form-control form-control-lg border-primary-subtle" id="select_approver_user" style="font-size: 0.95rem; border-radius: 8px;">
+                                <option value="" {{ !isset($recommendedApprover) || !$recommendedApprover ? 'selected' : '' }} disabled>-- Pilih Atasan / Manager Penerima --</option>
+                                @if(isset($approvers) && $approvers->count() > 0)
+                                    @foreach($approvers as $approver)
+                                        @php
+                                            $isRecommended = (isset($recommendedApprover) && $recommendedApprover && $approver->id === $recommendedApprover->id);
+                                        @endphp
+                                        <option value="{{ $approver->email }}" data-name="{{ $approver->name }}" {{ $isRecommended ? 'selected' : '' }}>
+                                            {{ $approver->name }} &mdash; {{ $approver->email }} {{ $isRecommended ? '★ [REKOMENDASI SISTEM]' : '' }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                                <option value="__manual__">Tulis Alamat Email Manual Lainnya...</option>
+                            </select>
+                            <input type="hidden" name="approver_email" id="approver_email_input" value="{{ (isset($recommendedApprover) && $recommendedApprover) ? $recommendedApprover->email : '' }}">
+                        </div>
+
+                        <!-- Manual Email Input (hanya muncul jika opsi Tulis Manual dipilih) -->
+                        <div class="form-group mb-3" id="manual_email_wrapper" style="display: none;">
+                            <label class="small font-weight-bold text-dark mb-1">
+                                <i class="fas fa-envelope text-primary mr-1"></i> Masukkan Alamat Email Tujuan: <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" id="manual_email_field" class="form-control" placeholder="contoh: manager.purchasing@panganlestari.co.id">
+                        </div>
+
+                        <!-- Confirmation Checkbox -->
+                        <div class="alert alert-warning py-2 px-3 mb-3 border-warning" style="border-radius: 8px;">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="confirm_email_verified">
+                                <label class="custom-control-label font-weight-bold text-dark mb-0" for="confirm_email_verified" style="font-size: 0.86rem; cursor: pointer;">
+                                    Saya telah memeriksa & mengonfirmasi bahwa alamat email tujuan sudah benar untuk menerima tautan persetujuan PO.
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Creator Signature -->
+                        <div class="card border shadow-none mb-0" style="border-radius: 10px;">
+                            <div class="card-header bg-light py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="font-weight-bold text-dark" style="font-size: 0.88rem;">
+                                        <i class="fas fa-pen-nib text-secondary mr-1"></i> Tanda Tangan Pembuat (Opsional)
+                                    </span>
+                                    <!-- Tabs -->
+                                    <ul class="nav nav-pills" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link active py-1 px-3" data-toggle="tab" href="#creator-draw-tab" style="font-size: 0.78rem;">
+                                                <i class="fas fa-pen mr-1"></i> Gambar
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link py-1 px-3" data-toggle="tab" href="#creator-upload-tab" style="font-size: 0.78rem;">
+                                                <i class="fas fa-upload mr-1"></i> Upload
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="tab-content">
+                                    <!-- Draw Tab -->
+                                    <div class="tab-pane fade show active" id="creator-draw-tab">
+                                        <div class="signature-pad-container" style="border: 1px dashed #cbd5e1; border-radius: 6px; background: #fafafa;">
+                                            <canvas id="creator-signature-pad" style="width: 100%; height: 160px; touch-action: none; cursor: crosshair;"></canvas>
+                                        </div>
+                                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <small class="text-primary font-weight-bold d-block" style="font-size: 0.74rem;">
+                                                    <i class="fas fa-pen-nib mr-1"></i> Tinta Tanda Tangan: Biru
+                                                </small>
+                                                <small class="text-muted" style="font-size: 0.72rem;">
+                                                    Ditandatangani Pada: {{ now()->format('d/m/Y H:i') }} WIB
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-xs btn-outline-secondary" id="clear-creator-signature">
+                                                <i class="fas fa-eraser mr-1"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Upload Tab -->
+                                    <div class="tab-pane fade" id="creator-upload-tab">
+                                        <div class="form-group mb-2">
+                                            <div class="custom-file">
+                                                <input type="file" class="custom-file-input" id="creator-signature-file" accept="image/*">
+                                                <label class="custom-file-label" for="creator-signature-file">Pilih file tanda tangan...</label>
+                                            </div>
+                                            <small class="form-text text-muted">Format: JPG, PNG. Max 2MB</small>
+                                        </div>
+                                        <div id="creator-upload-preview" class="text-center mt-2" style="display: none;">
+                                            <img id="creator-upload-img" src="" alt="Preview" style="max-height: 120px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                                            <div class="mt-1">
+                                                <button type="button" class="btn btn-xs btn-danger" id="clear-creator-upload">
+                                                    <i class="fas fa-times mr-1"></i> Hapus File
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-info" id="btn-submit-with-signature">
-                            <i class="fas fa-paper-plane mr-1"></i> Submit PO
+                    <div class="modal-footer bg-light px-4 py-3 justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i> Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary px-4 font-weight-bold" id="btn-submit-with-signature" disabled>
+                            <i class="fas fa-paper-plane mr-2"></i> Konfirmasi & Submit PO
                         </button>
                     </div>
                 </form>
@@ -876,9 +1246,17 @@
                             <!-- Draw Tab -->
                             <div class="tab-pane fade show active" id="approver-draw-tab">
                                 <div class="signature-pad-container" style="border: 2px solid #ccc; border-radius: 5px;">
-                                    <canvas id="approver-signature-pad" style="width: 100%; height: 200px;"></canvas>
+                                    <canvas id="approver-signature-pad" style="width: 100%; height: 200px; touch-action: none; cursor: crosshair;"></canvas>
                                 </div>
-                                <div class="mt-2 text-right">
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-primary font-weight-bold d-block" style="font-size: 0.74rem;">
+                                            <i class="fas fa-pen-nib mr-1"></i> Tinta Tanda Tangan: Biru
+                                        </small>
+                                        <small class="text-muted" style="font-size: 0.72rem;">
+                                            Ditandatangani Pada: {{ now()->format('d/m/Y H:i') }} WIB
+                                        </small>
+                                    </div>
                                     <button type="button" class="btn btn-sm btn-secondary" id="clear-approver-signature">
                                         <i class="fas fa-eraser mr-1"></i> Hapus
                                     </button>
@@ -959,7 +1337,7 @@
                 <div class="modal fade" id="paymentModal" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <form id="form-record-payment" method="POST">
+                            <form id="form-record-payment" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="modal-header bg-success text-white">
                                     <h5 class="modal-title"><i class="fas fa-money-bill-wave mr-2"></i>Catat Pembayaran
@@ -982,7 +1360,27 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Catatan</label>
-                                        <textarea name="note" class="form-control" rows="2" placeholder="Nomor bukti transfer, dll"></textarea>
+                                        <textarea name="note" id="payment-note" class="form-control" rows="2" placeholder="Nomor bukti transfer, dll"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Upload Bukti Pembayaran <small class="text-muted">(PDF, PNG, JPG - Maks 5MB)</small></label>
+                                        <div class="custom-file">
+                                            <input type="file" name="proof_file" id="proof_file" class="custom-file-input" accept=".pdf,.png,.jpg,.jpeg">
+                                            <label class="custom-file-label" for="proof_file">Pilih file bukti...</label>
+                                        </div>
+                                        <div id="proof-preview-container" class="mt-2 text-center" style="display: none;">
+                                            <img id="proof-img-preview" src="" alt="Preview Bukti" style="max-height: 120px; border-radius: 4px; border: 1px solid #ced4da;" class="img-fluid mb-1">
+                                            <div id="proof-pdf-preview" style="display: none;" class="alert alert-light border py-2 mb-1">
+                                                <i class="fas fa-file-pdf text-danger fa-2x mr-2 align-middle"></i>
+                                                <span id="proof-file-name" class="font-weight-bold"></span>
+                                            </div>
+                                            <div>
+                                                <button type="button" class="btn btn-xs btn-outline-danger" id="btn-clear-proof">
+                                                    <i class="fas fa-times mr-1"></i> Hapus File
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted mt-1">Opsional: Lampirkan bukti transfer atau struk pembayaran.</small>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -1092,14 +1490,210 @@
                     </div>
                 </div>
                 @endif
+
+                <!-- Modal Revisi PO -->
+                <div class="modal fade" id="revisionModal" tabindex="-1" role="dialog" aria-labelledby="revisionModalTitle" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header bg-warning text-dark py-3">
+                                <h5 class="modal-title font-weight-bold" id="revisionModalTitle">
+                                    <i class="fas fa-undo-alt mr-2"></i>Tarik PO untuk Revisi
+                                </h5>
+                                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form action="{{ route('purchase-orders.revise', $po->id) }}" method="POST">
+                                @csrf
+                                <div class="modal-body p-4">
+                                    <div class="alert alert-light border mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-invoice text-primary fa-2x mr-3"></i>
+                                            <div>
+                                                <span class="d-block text-muted small">Nomor Dokumen:</span>
+                                                <strong class="text-dark" style="font-size: 15px;">{{ $po->po_number }}</strong>
+                                                <span class="badge badge-secondary ml-1">Revisi ke-{{ ($po->revision_count ?? 0) + 1 }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="callout callout-warning bg-light p-3 mb-3 small" style="border-left-color: #ffc107;">
+                                        <strong>Perhatian:</strong>
+                                        <ul class="pl-3 mb-0 mt-1 text-muted">
+                                            <li>Status PO akan dikembalikan ke <strong>Draft</strong>.</li>
+                                            @if ($po->status === 'approved')
+                                                <li>Status persetujuan sebelumnya akan <strong>direset</strong> dan memerlukan approval ulang setelah revisi selesai.</li>
+                                            @else
+                                                <li>Tautan permohonan persetujuan (approval) email sebelumnya akan <strong>dibatalkan otomatis</strong>.</li>
+                                            @endif
+                                            <li>Setelah mengklik tombol di bawah, Anda akan langsung diarahkan ke halaman formulir edit PO.</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="form-group mb-0">
+                                        <label for="showRevReasonInput" class="font-weight-bold text-dark">
+                            Alasan Revisi <span class="text-danger">*</span>
+                        </label>
+                                        <textarea name="reason" id="showRevReasonInput" class="form-control" rows="3" 
+                                            placeholder="Contoh: Perubahan kuantitas item kabel dari 10 ke 15 pcs sesuai memo vendor..." required></textarea>
+                                        <small class="form-text text-muted">Catatan ini akan tersimpan dalam riwayat revisi dokumen PO.</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer bg-light py-2">
+                                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">
+                                        <i class="fas fa-times mr-1"></i> Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold px-4">
+                                        <i class="fas fa-arrow-right mr-1"></i> Proses & Buka Form Edit
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Riwayat Revisi PO (Timeline Popup) -->
+                <div class="modal fade" id="revisionHistoryModal" tabindex="-1" role="dialog" aria-labelledby="revisionHistoryModalTitle" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                            <div class="modal-header text-white px-4 py-3" style="background-color: #1e293b;">
+                                <div>
+                                    <h5 class="modal-title font-weight-bold mb-0" id="revisionHistoryModalTitle">
+                                        <i class="fas fa-history text-warning mr-2"></i>Riwayat Revisi Dokumen PO
+                                    </h5>
+                                    <small class="text-white-50">
+                                        No. PO: <strong>{{ $po->po_number }}</strong> &bull; Total Tercatat: <strong>{{ $po->revision_count }} kali revisi</strong>
+                                    </small>
+                                </div>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.85;">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body p-4" style="background-color: #f8fafc;">
+                                @php
+                                    $revList = $po->revisions ?? collect();
+                                @endphp
+
+                                @if($revList->count() > 0)
+                                    <div class="timeline mb-0">
+                                        @foreach($revList as $rev)
+                                            <div class="time-label">
+                                                <span class="bg-warning text-dark px-3 py-1 font-weight-bold shadow-sm" style="border-radius: 6px;">
+                                                    <i class="fas fa-calendar-alt mr-1"></i> {{ $rev->created_at->format('d F Y') }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <i class="fas fa-undo-alt bg-primary text-white"></i>
+                                                <div class="timeline-item shadow-sm border" style="border-radius: 8px;">
+                                                    <span class="time text-muted small">
+                                                        <i class="fas fa-clock mr-1"></i>{{ $rev->created_at->format('H:i') }} WIB
+                                                    </span>
+                                                    <h3 class="timeline-header font-weight-bold d-flex justify-content-between align-items-center flex-wrap" style="font-size: 0.95rem;">
+                                                        <span>
+                                                            <span class="badge badge-primary px-2 py-1 mr-1">Revisi ke-{{ $rev->revision_number }}</span>
+                                                            Ditarik oleh <strong>{{ $rev->user->name ?? ($rev->revisedBy->name ?? 'User') }}</strong>
+                                                        </span>
+                                                        @if($rev->previous_status)
+                                                            <small class="badge badge-light border text-muted mt-1 mt-md-0">
+                                                                Status sebelum ditarik: <strong>{{ $rev->previous_status_label }}</strong>
+                                                            </small>
+                                                        @endif
+                                                    </h3>
+                                                    <div class="timeline-body py-3">
+                                                        <div class="p-3 rounded" style="background-color: #f1f5f9; border-left: 4px solid #ffc107;">
+                                                            <div class="small font-weight-bold text-muted mb-1">
+                                                                <i class="fas fa-comment-dots text-warning mr-1"></i> Alasan / Catatan Revisi:
+                                                            </div>
+                                                            <div class="text-dark font-italic" style="font-size: 0.92rem; line-height: 1.5;">
+                                                                &ldquo;{{ $rev->reason }}&rdquo;
+                                                            </div>
+                                                        </div>
+                                                        @if($rev->previous_total_amount)
+                                                            <div class="mt-2 small text-muted">
+                                                                <i class="fas fa-receipt mr-1 text-secondary"></i> Total nominal sebelum revisi: <strong>{{ $rev->formatted_previous_total }}</strong>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        <div>
+                                            <i class="fas fa-check-circle bg-success text-white" title="Dokumen Awal Dibuat"></i>
+                                            <div class="timeline-item shadow-sm border bg-white" style="border-radius: 8px;">
+                                                <span class="time text-muted small">
+                                                    <i class="fas fa-clock mr-1"></i>{{ $po->created_at->format('H:i') }} WIB
+                                                </span>
+                                                <h3 class="timeline-header font-weight-bold" style="font-size: 0.9rem;">
+                                                    <span class="badge badge-secondary px-2 py-1 mr-1">Versi Awal</span>
+                                                    Purchase Order pertama kali dibuat oleh <strong>{{ $po->creator->name ?? 'User' }}</strong>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @elseif($po->revision_count > 0 && $po->revision_reason)
+                                    <!-- Fallback single record -->
+                                    <div class="timeline mb-0">
+                                        <div class="time-label">
+                                            <span class="bg-warning text-dark px-3 py-1 font-weight-bold shadow-sm" style="border-radius: 6px;">
+                                                <i class="fas fa-calendar-alt mr-1"></i> {{ $po->revised_at ? $po->revised_at->format('d F Y') : '-' }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-undo-alt bg-primary text-white"></i>
+                                            <div class="timeline-item shadow-sm border" style="border-radius: 8px;">
+                                                <span class="time text-muted small">
+                                                    <i class="fas fa-clock mr-1"></i>{{ $po->revised_at ? $po->revised_at->format('H:i') . ' WIB' : '' }}
+                                                </span>
+                                                <h3 class="timeline-header font-weight-bold" style="font-size: 0.95rem;">
+                                                    <span class="badge badge-primary px-2 py-1 mr-1">Revisi ke-{{ $po->revision_count }}</span>
+                                                    Ditarik oleh <strong>{{ $po->revisedBy->name ?? 'User' }}</strong>
+                                                </h3>
+                                                <div class="timeline-body py-3">
+                                                    <div class="p-3 rounded" style="background-color: #f1f5f9; border-left: 4px solid #ffc107;">
+                                                        <div class="small font-weight-bold text-muted mb-1">
+                                                            <i class="fas fa-comment-dots text-warning mr-1"></i> Alasan / Catatan Revisi:
+                                                        </div>
+                                                        <div class="text-dark font-italic" style="font-size: 0.92rem; line-height: 1.5;">
+                                                            &ldquo;{{ $po->revision_reason }}&rdquo;
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="fas fa-history fa-3x mb-3 text-secondary" style="opacity: 0.4;"></i>
+                                        <h6 class="font-weight-bold">Belum Ada Riwayat Revisi</h6>
+                                        <p class="small mb-0">Dokumen PO ini belum pernah ditarik untuk proses revisi.</p>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="modal-footer bg-light px-4 py-2">
+                                <button type="button" class="btn btn-secondary btn-sm px-4 font-weight-bold" data-dismiss="modal">
+                                    <i class="fas fa-times mr-1"></i> Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 @endsection
 
 @push('scripts')
-                <script>
-                    $(document).ready(function() {
+    <!-- SignaturePad Library (Local asset with CDN fallback) -->
+    <script src="{{ asset('js/signature_pad.umd.min.js') }}"></script>
+    <script>
+        if (typeof SignaturePad === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        $(document).ready(function() {
+
+
                         // Submit PO with SweetAlert
                         $('.btn-submit-po').on('click', function() {
                             Swal.fire({
@@ -1208,8 +1802,54 @@
 
                             $('#payment-description').text(description);
                             $('#paid_amount').val(formatMoney(amount));
+                            $('#payment-note').val('');
+                            // Reset file input & preview
+                            $('#proof_file').val('');
+                            $('#proof_file').next('.custom-file-label').text('Pilih file bukti...');
+                            $('#proof-preview-container').hide();
+                            $('#proof-img-preview').hide().attr('src', '');
+                            $('#proof-pdf-preview').hide();
+                            $('#proof-file-name').text('');
+
                             $('#form-record-payment').attr('action', '{{ url("po-payments") }}/' + id + '/record');
                             $('#paymentModal').modal('show');
+                        });
+
+                        // File input change preview
+                        $('#proof_file').on('change', function(e) {
+                            var file = e.target.files[0];
+                            if (!file) {
+                                $('#proof_file').next('.custom-file-label').text('Pilih file bukti...');
+                                $('#proof-preview-container').hide();
+                                return;
+                            }
+
+                            $('#proof_file').next('.custom-file-label').text(file.name);
+                            $('#proof-preview-container').show();
+
+                            if (file.type && file.type.match('image.*')) {
+                                var reader = new FileReader();
+                                reader.onload = function(re) {
+                                    $('#proof-img-preview').attr('src', re.target.result).show();
+                                    $('#proof-pdf-preview').hide();
+                                };
+                                reader.readAsDataURL(file);
+                            } else {
+                                $('#proof-img-preview').hide().attr('src', '');
+                                $('#proof-pdf-preview').show();
+                                var sizeText = file.size ? ' (' + (file.size / 1024).toFixed(1) + ' KB)' : '';
+                                $('#proof-file-name').text(file.name + sizeText);
+                            }
+                        });
+
+                        // Clear proof file
+                        $('#btn-clear-proof').on('click', function() {
+                            $('#proof_file').val('');
+                            $('#proof_file').next('.custom-file-label').text('Pilih file bukti...');
+                            $('#proof-preview-container').hide();
+                            $('#proof-img-preview').hide().attr('src', '');
+                            $('#proof-pdf-preview').hide();
+                            $('#proof-file-name').text('');
                         });
 
                         // Money format
@@ -1224,40 +1864,147 @@
                             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                         }
 
-                        // SignaturePad initialization
+                        // SignaturePad initialization & Fallback Drawing Engine
                         var creatorCanvas = document.getElementById('creator-signature-pad');
                         var approverCanvas = document.getElementById('approver-signature-pad');
-                        var creatorSignaturePad, approverSignaturePad;
+                        var creatorSignaturePad = null;
+                        var approverSignaturePad = null;
 
-                        function resizeCanvas(canvas, signaturePad) {
+                        function createFallbackSignaturePad(canvas, ratio) {
+                            var ctx = canvas.getContext('2d');
+                            var isDrawing = false;
+                            var hasDrawn = false;
+
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width / ratio, canvas.height / ratio);
+                            ctx.strokeStyle = '#0038a8';
+                            ctx.lineWidth = 2.5;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+
+                            function getPos(e) {
+                                var rect = canvas.getBoundingClientRect();
+                                var clientX = e.clientX;
+                                var clientY = e.clientY;
+                                if (e.touches && e.touches.length > 0) {
+                                    clientX = e.touches[0].clientX;
+                                    clientY = e.touches[0].clientY;
+                                }
+                                return {
+                                    x: clientX - rect.left,
+                                    y: clientY - rect.top
+                                };
+                            }
+
+                            function startDraw(e) {
+                                e.preventDefault();
+                                isDrawing = true;
+                                hasDrawn = true;
+                                var pos = getPos(e);
+                                ctx.beginPath();
+                                ctx.moveTo(pos.x, pos.y);
+                            }
+
+                            function moveDraw(e) {
+                                if (!isDrawing) return;
+                                e.preventDefault();
+                                var pos = getPos(e);
+                                ctx.lineTo(pos.x, pos.y);
+                                ctx.stroke();
+                            }
+
+                            function stopDraw(e) {
+                                if (isDrawing) {
+                                    isDrawing = false;
+                                }
+                            }
+
+                            canvas.onmousedown = startDraw;
+                            canvas.onmousemove = moveDraw;
+                            window.addEventListener('mouseup', stopDraw);
+
+                            canvas.ontouchstart = startDraw;
+                            canvas.ontouchmove = moveDraw;
+                            window.addEventListener('touchend', stopDraw);
+
+                            return {
+                                clear: function() {
+                                    hasDrawn = false;
+                                    ctx.fillStyle = '#ffffff';
+                                    ctx.fillRect(0, 0, canvas.width / ratio, canvas.height / ratio);
+                                },
+                                isEmpty: function() {
+                                    return !hasDrawn;
+                                },
+                                toDataURL: function(type) {
+                                    return canvas.toDataURL(type || 'image/png');
+                                }
+                            };
+                        }
+
+                        function initPad(canvasId) {
+                            var canvas = document.getElementById(canvasId);
+                            if (!canvas) return null;
+
+                            var container = canvas.parentElement;
+                            var width = container ? (container.clientWidth || 550) : 550;
+                            var height = parseInt(canvas.style.height) || 160;
                             var ratio = Math.max(window.devicePixelRatio || 1, 1);
-                            canvas.width = canvas.offsetWidth * ratio;
-                            canvas.height = canvas.offsetHeight * ratio;
-                            canvas.getContext("2d").scale(ratio, ratio);
-                            if (signaturePad) {
-                                signaturePad.clear();
+
+                            canvas.width = width * ratio;
+                            canvas.height = height * ratio;
+                            canvas.style.width = width + 'px';
+                            canvas.style.height = height + 'px';
+
+                            var ctx = canvas.getContext('2d');
+                            ctx.scale(ratio, ratio);
+
+                            if (typeof SignaturePad !== 'undefined') {
+                                try {
+                                    var pad = new SignaturePad(canvas, {
+                                        backgroundColor: 'rgb(255, 255, 255)',
+                                        penColor: 'rgb(0, 56, 168)',
+                                        minWidth: 1.5,
+                                        maxWidth: 3.5
+                                    });
+                                    pad.clear();
+                                    return pad;
+                                } catch (err) {
+                                    console.warn('SignaturePad initialization failed, using native canvas fallback', err);
+                                    return createFallbackSignaturePad(canvas, ratio);
+                                }
+                            } else {
+                                return createFallbackSignaturePad(canvas, ratio);
                             }
                         }
 
-                        // Initialize creator signature pad when modal opens
+                        // Initialize creator signature pad when submitModal opens or draw tab is activated
                         $('#submitModal').on('shown.bs.modal', function() {
-                            if (!creatorSignaturePad && creatorCanvas) {
-                                resizeCanvas(creatorCanvas);
-                                creatorSignaturePad = new SignaturePad(creatorCanvas, {
-                                    backgroundColor: 'rgb(255, 255, 255)',
-                                    penColor: 'rgb(0, 0, 0)'
-                                });
+                            setTimeout(function() {
+                                creatorSignaturePad = initPad('creator-signature-pad');
+                            }, 50);
+                        });
+
+                        $('a[href="#creator-draw-tab"]').on('shown.bs.tab', function() {
+                            if (!creatorSignaturePad || creatorSignaturePad.isEmpty()) {
+                                setTimeout(function() {
+                                    creatorSignaturePad = initPad('creator-signature-pad');
+                                }, 50);
                             }
                         });
 
-                        // Initialize approver signature pad when modal opens
+                        // Initialize approver signature pad when approveModal opens or draw tab is activated
                         $('#approveModal').on('shown.bs.modal', function() {
-                            if (!approverSignaturePad && approverCanvas) {
-                                resizeCanvas(approverCanvas);
-                                approverSignaturePad = new SignaturePad(approverCanvas, {
-                                    backgroundColor: 'rgb(255, 255, 255)',
-                                    penColor: 'rgb(0, 0, 0)'
-                                });
+                            setTimeout(function() {
+                                approverSignaturePad = initPad('approver-signature-pad');
+                            }, 50);
+                        });
+
+                        $('a[href="#approver-draw-tab"]').on('shown.bs.tab', function() {
+                            if (!approverSignaturePad || approverSignaturePad.isEmpty()) {
+                                setTimeout(function() {
+                                    approverSignaturePad = initPad('approver-signature-pad');
+                                }, 50);
                             }
                         });
 
@@ -1363,32 +2110,108 @@
                             $('#approver-upload-preview').hide();
                         });
 
-                        // Submit form with signature (canvas or upload)
-                        $('#form-submit').on('submit', function(e) {
-                            var activeTab = $('#submitModal .tab-pane.active').attr('id');
-                            var hasSignature = false;
+                        // --- APPROVER EMAIL & SELECTION LOGIC ---
+                        function isValidEmail(email) {
+                            var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                            return re.test(String(email).toLowerCase());
+                        }
 
+                        function updateSubmitButtonState() {
+                            var email = ($('#approver_email_input').val() || '').trim();
+                            var isConfirmed = $('#confirm_email_verified').length ? $('#confirm_email_verified').is(':checked') : true;
+                            var isValid = isValidEmail(email) && isConfirmed;
+
+                            $('#btn-submit-with-signature').prop('disabled', !isValid);
+                        }
+
+                        // Initialize approver email if already selected by recommendation
+                        var initialApproverVal = $('#select_approver_user').val();
+                        if (initialApproverVal && initialApproverVal !== '__manual__') {
+                            $('#approver_email_input').val(initialApproverVal);
+                        }
+                        updateSubmitButtonState();
+
+                        // When manager is selected from dropdown
+                        $('#select_approver_user').on('change', function() {
+                            var val = $(this).val();
+
+                            if (val === '__manual__') {
+                                $('#manual_email_wrapper').slideDown(200);
+                                $('#manual_email_field').val('').focus();
+                                $('#approver_email_input').val('');
+                            } else if (val) {
+                                $('#manual_email_wrapper').slideUp(200);
+                                $('#approver_email_input').val(val);
+                            } else {
+                                $('#manual_email_wrapper').slideUp(200);
+                                $('#approver_email_input').val('');
+                            }
+
+                            // Reset checkbox so user confirms explicitly
+                            $('#confirm_email_verified').prop('checked', false);
+                            updateSubmitButtonState();
+                        });
+
+                        // When typing in manual email input
+                        $('#manual_email_field').on('input', function() {
+                            $('#approver_email_input').val($(this).val().trim());
+                            updateSubmitButtonState();
+                        });
+
+                        // When confirmation checkbox is toggled
+                        $('#confirm_email_verified').on('change', function() {
+                            var email = ($('#approver_email_input').val() || '').trim();
+                            if ($(this).is(':checked') && (!email || !isValidEmail(email))) {
+                                $(this).prop('checked', false);
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Email Belum Ditentukan',
+                                    text: 'Silakan pilih atasan dari daftar atau isi alamat email tujuan terlebih dahulu.'
+                                });
+                                return;
+                            }
+                            updateSubmitButtonState();
+                        });
+
+                        // Submit form handler
+                        $('#form-submit').on('submit', function(e) {
+                            var email = ($('#approver_email_input').val() || '').trim();
+                            if (!email || !isValidEmail(email)) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Alamat Email Diperlukan',
+                                    text: 'Pastikan alamat email tujuan sudah diisi dan berformat valid.'
+                                });
+                                return false;
+                            }
+
+                            if (!$('#confirm_email_verified').is(':checked')) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Konfirmasi Diperlukan',
+                                    text: 'Centang kotak konfirmasi alamat email sebelum mengirim permohonan persetujuan.'
+                                });
+                                return false;
+                            }
+
+                            // Capture signature if drawn or uploaded
+                            var activeTab = $('#submitModal .tab-pane.active').attr('id');
                             if (activeTab === 'creator-draw-tab') {
                                 if (creatorSignaturePad && !creatorSignaturePad.isEmpty()) {
                                     $('#creator_signature_input').val(creatorSignaturePad.toDataURL('image/png'));
-                                    hasSignature = true;
                                 }
                             } else if (activeTab === 'creator-upload-tab') {
                                 if (creatorUploadData) {
                                     $('#creator_signature_input').val(creatorUploadData);
-                                    hasSignature = true;
                                 }
                             }
 
-                            if (!hasSignature) {
-                                e.preventDefault();
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Tanda Tangan Diperlukan',
-                                    text: 'Silakan gambar atau upload tanda tangan terlebih dahulu.'
-                                });
-                                return false;
-                            }
+                            // Show loading state on button
+                            $('#btn-submit-with-signature')
+                                .prop('disabled', true)
+                                .html('<i class="fas fa-spinner fa-spin mr-2"></i> Mengirim PO...');
                         });
 
                         // Approve form with signature (canvas or upload)
@@ -1418,10 +2241,111 @@
                                 return false;
                             }
                         });
+
+                        // --- TAX REVIEW EMAIL SELECTION LOGIC ---
+                        function updateTaxReviewSubmitButton() {
+                            var email = ($('#tax_reviewer_email_input').val() || '').trim();
+                            var isConfirmed = $('#confirm_tax_reviewer_email_verified').length ? $('#confirm_tax_reviewer_email_verified').is(':checked') : true;
+                            var isValid = isValidEmail(email) && isConfirmed;
+                            $('#btn-submit-tax-review-email').prop('disabled', !isValid);
+                        }
+
+                        // Run on load in case a reviewer was already selected
+                        updateTaxReviewSubmitButton();
+
+                        $('#select_tax_reviewer').on('change', function() {
+                            var val = $(this).val();
+                            if (val === '__manual__') {
+                                $('#manual_tax_email_wrapper').slideDown(200);
+                                $('#manual_tax_email_field').val('').focus();
+                                $('#tax_reviewer_email_input').val('');
+                            } else if (val) {
+                                $('#manual_tax_email_wrapper').slideUp(200);
+                                $('#tax_reviewer_email_input').val(val);
+                            } else {
+                                $('#manual_tax_email_wrapper').slideUp(200);
+                                $('#tax_reviewer_email_input').val('');
+                            }
+                            $('#confirm_tax_reviewer_email_verified').prop('checked', false);
+                            updateTaxReviewSubmitButton();
+                        });
+
+                        $('#manual_tax_email_field').on('input', function() {
+                            $('#tax_reviewer_email_input').val($(this).val().trim());
+                            updateTaxReviewSubmitButton();
+                        });
+
+                        $('#confirm_tax_reviewer_email_verified').on('change', function() {
+                            var email = ($('#tax_reviewer_email_input').val() || '').trim();
+                            if ($(this).is(':checked') && (!email || !isValidEmail(email))) {
+                                $(this).prop('checked', false);
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Email Belum Ditentukan',
+                                    text: 'Silakan pilih petugas pajak dari daftar atau ketik alamat email terlebih dahulu.'
+                                });
+                                return;
+                            }
+                            updateTaxReviewSubmitButton();
+                        });
+
+                        var taxReviewConfirmed = false;
+                        $('#form-tax-review-email').on('submit', function(e) {
+                            var email = ($('#tax_reviewer_email_input').val() || '').trim();
+                            if (!email || !isValidEmail(email)) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Email Belum Ditentukan',
+                                    text: 'Silakan pilih petugas pajak atau isi alamat email yang valid.'
+                                });
+                                return false;
+                            }
+
+                            if (!$('#confirm_tax_reviewer_email_verified').is(':checked')) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Konfirmasi Diperlukan',
+                                    text: 'Centang kotak konfirmasi alamat email sebelum mengirim permohonan ke Tim Tax.'
+                                });
+                                return false;
+                            }
+
+                            if (!taxReviewConfirmed) {
+                                e.preventDefault();
+                                var selectedName = $('#select_tax_reviewer option:selected').data('name');
+                                var targetInfo = selectedName ? selectedName + ' &bull; ' + email : email;
+
+                                Swal.fire({
+                                    title: 'Konfirmasi Kirim Review Tax',
+                                    html: '<div class="text-left" style="font-size: 0.95rem;">' +
+                                          '<p class="mb-2">Permohonan review pajak dan lampiran <strong>PDF PO</strong> akan dikirimkan ke:</p>' +
+                                          '<div class="alert alert-info py-2 px-3 mb-2 font-weight-bold" style="border-radius: 8px;">' +
+                                          '<i class="fas fa-envelope mr-2"></i> ' + targetInfo +
+                                          '</div>' +
+                                          '<p class="small text-muted mb-0"><i class="fas fa-info-circle mr-1 text-primary"></i> Pastikan alamat email di atas sudah benar agar permohonan tidak salah kirim.</p>' +
+                                          '</div>',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#007bff',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: '<i class="fas fa-paper-plane mr-1"></i> Ya, Kirim Sekarang',
+                                    cancelButtonText: 'Periksa Kembali'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        taxReviewConfirmed = true;
+                                        $('#btn-submit-tax-review-email')
+                                            .prop('disabled', true)
+                                            .html('<i class="fas fa-spinner fa-spin mr-2"></i> Mengirim Permohonan...');
+                                        $('#form-tax-review-email').submit();
+                                    }
+                                });
+                                return false;
+                            }
+                        });
                     });
                 </script>
-                <!-- SignaturePad Library -->
-                <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 @endpush
 
 @push('styles')

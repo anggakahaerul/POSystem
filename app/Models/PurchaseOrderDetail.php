@@ -21,6 +21,10 @@ class PurchaseOrderDetail extends Model
         'discount_value',
         'discount_amount',
         'subtotal_after_discount',
+        'is_pph',
+        'pph_type',
+        'pph_percentage',
+        'pph_amount',
         'notes',
     ];
 
@@ -32,8 +36,23 @@ class PurchaseOrderDetail extends Model
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'subtotal_after_discount' => 'decimal:2',
+        'is_pph' => 'boolean',
+        'pph_percentage' => 'decimal:2',
+        'pph_amount' => 'decimal:2',
         'received_at' => 'datetime',
     ];
+
+    /**
+     * Get PPh Label description for detail
+     */
+    public function getPphLabelAttribute(): string
+    {
+        if (!$this->is_pph || $this->pph_percentage <= 0) {
+            return '-';
+        }
+
+        return 'PPh';
+    }
 
     /**
      * Boot method - auto calculate subtotal

@@ -51,12 +51,34 @@
                         <td>{{ $vendor->address ?: '-' }}</td>
                     </tr>
                     <tr>
-                        <th>NPWP</th>
+                        <th>Tipe NPWP</th>
+                        <td>
+                            @if($vendor->npwp_type)
+                                <span class="badge badge-info px-2 py-1">{{ $vendor->npwp_type }}</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Nomor NPWP</th>
                         <td>{{ $vendor->npwp ?: '-' }}</td>
                     </tr>
                     <tr>
                         <th>Informasi Bank</th>
                         <td>{{ $vendor->bank_info ?: '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Term of Payment (TOP)</th>
+                        <td>
+                            @if($vendor->paymentTerm)
+                                <span class="badge badge-light border text-primary font-weight-bold px-2 py-1" style="font-size: 0.88rem;">
+                                    <i class="fas fa-file-invoice-dollar mr-1"></i>{{ $vendor->paymentTerm->display_name }}
+                                </span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
                     </tr>
                     <tr>
                         <th>Jumlah PO</th>

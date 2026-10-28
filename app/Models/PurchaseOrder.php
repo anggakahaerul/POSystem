@@ -11,9 +11,11 @@ class PurchaseOrder extends Model
     use HasFactory;
 
     protected $fillable = [
+        'purchase_request_id',
         'po_number',
         'vendor_id',
         'branch_id',
+        'department_id',
         'payment_term_id',
         'subtotal',
         'discount_type',
@@ -21,8 +23,21 @@ class PurchaseOrder extends Model
         'discount_amount',
         'ppn_percentage',
         'ppn_amount',
+        'is_pph',
+        'pph_type',
+        'pph_percentage',
+        'pph_amount',
         'total_amount',
         'status',
+        'tax_review_status',
+        'tax_reviewed_by',
+        'tax_reviewed_at',
+        'tax_notes',
+        'tax_reviewer_email',
+        'tax_review_requested_at',
+        'approval_token',
+        'approver_email',
+        'approval_token_expires_at',
         'payment_status',
         'receipt_status',
         'payment_due_date',
@@ -33,6 +48,10 @@ class PurchaseOrder extends Model
         'received_by',
         'note',
         'rejection_reason',
+        'revision_count',
+        'revision_reason',
+        'revised_by',
+        'revised_at',
         'required_date',
         'approved_at',
         'received_at',
@@ -44,17 +63,29 @@ class PurchaseOrder extends Model
         'discount_amount' => 'decimal:2',
         'ppn_percentage' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
+        'is_pph' => 'boolean',
+        'pph_percentage' => 'decimal:2',
+        'pph_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'required_date' => 'date',
         'payment_due_date' => 'date',
         'approved_at' => 'datetime',
         'received_at' => 'datetime',
+        'tax_reviewed_at' => 'datetime',
+        'tax_review_requested_at' => 'datetime',
+        'approval_token_expires_at' => 'datetime',
+        'revision_count' => 'integer',
+        'revised_at' => 'datetime',
     ];
 
     const STATUS_DRAFT = 'draft';
     const STATUS_PENDING = 'pending';
     const STATUS_APPROVED = 'approved';
     const STATUS_REJECTED = 'rejected';
+
+    const TAX_REVIEW_PENDING = 'pending';
+    const TAX_REVIEW_VERIFIED = 'verified';
+    const TAX_REVIEW_REVISED = 'revised';
 
     const PAYMENT_UNPAID = 'unpaid';
     const PAYMENT_PARTIAL = 'partial';
@@ -63,6 +94,14 @@ class PurchaseOrder extends Model
     const RECEIPT_NOT_RECEIVED = 'not_received';
     const RECEIPT_PARTIAL = 'partial';
     const RECEIPT_RECEIVED = 'received';
+
+    /**
+     * Relationship: PO belongs to purchase request (optional)
+     */
+    public function purchaseRequest()
+    {
+        return $this->belongsTo(PurchaseRequest::class);
+    }
 
     /**
      * Relationship: PO belongs to vendor
@@ -78,6 +117,14 @@ class PurchaseOrder extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Relationship: PO belongs to department
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 
     /**
@@ -121,11 +168,59 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Relationship: PO tax reviewed by user
+     */
+    public function taxReviewer()
+    {
+        return $this->belongsTo(User::class, 'tax_reviewed_by');
+    }
+
+    /**
+     * Get tax review status badge class
+     */
+    public function getTaxReviewBadgeAttribute(): string
+    {
+        return match ($this->tax_review_status) {
+            self::TAX_REVIEW_VERIFIED => 'success',
+            self::TAX_REVIEW_REVISED => 'info',
+            default => 'warning',
+        };
+    }
+
+    /**
+     * Get tax review status label
+     */
+    public function getTaxReviewLabelAttribute(): string
+    {
+        return match ($this->tax_review_status) {
+            self::TAX_REVIEW_VERIFIED => 'Terverifikasi',
+            self::TAX_REVIEW_REVISED => 'Terkoreksi',
+            default => 'Menunggu Review',
+        };
+    }
+
+    /**
      * Relationship: PO received by user
      */
     public function receiver()
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    /**
+     * Relationship: PO revised by user
+     */
+    public function revisedBy()
+    {
+        return $this->belongsTo(User::class, 'revised_by');
+    }
+
+    /**
+     * Relationship: PO has many revision history records
+     */
+    public function revisions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PurchaseOrderRevision::class)->orderBy('revision_number', 'desc');
     }
 
     /**
@@ -161,11 +256,109 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Check if PO can be revised
+     * Allowed for PO with status pending (awaiting approval), rejected, or approved
+     */
+    public function canRevise(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        // Pending, rejected, or approved POs can be pulled for revision
+        if (!in_array($this->status, [self::STATUS_PENDING, self::STATUS_REJECTED, self::STATUS_APPROVED])) {
+            return false;
+        }
+
+        // User must be the creator, an admin, manager, or have edit permission
+        return $user->id === $this->created_by
+            || $user->hasRole(['Admin', 'Manager', 'General Manager', 'Regional Manager'])
+            || $user->can('edit purchase-orders');
+    }
+
+    /**
+     * Revise PO: resets status back to draft, invalidates previous approval token,
+     * resets approval state if previously approved, increments revision counter, and saves revision reason.
+     */
+    public function revise(string $reason, ?int $userId = null): bool
+    {
+        if (!$this->canRevise()) {
+            return false;
+        }
+
+        $previousStatus = $this->status;
+        $previousTotal = $this->total_amount;
+        $newRevisionCount = (int)($this->revision_count ?? 0) + 1;
+
+        $this->status = self::STATUS_DRAFT;
+        $this->revision_count = $newRevisionCount;
+        $this->revision_reason = $reason;
+        $this->revised_by = $userId ?? auth()->id();
+        $this->revised_at = now();
+
+        // Invalidate existing approval magic token
+        $this->approval_token = null;
+        $this->approval_token_expires_at = null;
+
+        // Reset approval fields so the revised PO goes through the approval process again
+        $this->approved_by = null;
+        $this->approved_at = null;
+        $this->approver_signature = null;
+
+        // If PO has PPh, reset tax review to pending so tax team can re-verify after edit
+        if ($this->is_pph) {
+            $this->tax_review_status = self::TAX_REVIEW_PENDING;
+        }
+
+        $saved = $this->save();
+
+        if ($saved) {
+            $this->revisions()->create([
+                'revision_number' => $newRevisionCount,
+                'reason' => $reason,
+                'revised_by' => $this->revised_by,
+                'previous_status' => $previousStatus,
+                'previous_total_amount' => $previousTotal,
+            ]);
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Check if PO is waiting for tax team review (specific to POs with PPh enabled)
+     */
+    public function isWaitingTaxReview(): bool
+    {
+        return $this->status === self::STATUS_DRAFT
+            && (bool)$this->is_pph
+            && $this->tax_review_status === self::TAX_REVIEW_PENDING;
+    }
+
+    /**
+     * Check if PO tax review has been completed
+     */
+    public function isTaxReviewed(): bool
+    {
+        return in_array($this->tax_review_status, [self::TAX_REVIEW_VERIFIED, self::TAX_REVIEW_REVISED]);
+    }
+
+    /**
      * Check if PO can be submitted
      */
     public function canSubmit(): bool
     {
-        return $this->status === self::STATUS_DRAFT && $this->details()->count() > 0;
+        if ($this->status !== self::STATUS_DRAFT || $this->details()->count() === 0) {
+            return false;
+        }
+
+        // If PPh is enabled, it must be reviewed and verified by tax team first
+        if ($this->is_pph && $this->tax_review_status === self::TAX_REVIEW_PENDING) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -323,14 +516,21 @@ class PurchaseOrder extends Model
 
         // Step 2: PO Disubmit
         $isSubmitted = in_array($this->status, [self::STATUS_PENDING, self::STATUS_APPROVED, self::STATUS_REJECTED]);
+        $waitingTax = $this->isWaitingTaxReview();
+        $step2Status = $isSubmitted ? 'completed' : ($waitingTax ? 'current status-warning' : 'greyscale');
+        $step2Badge = $isSubmitted ? 'Telah Disubmit' : ($waitingTax ? 'Review Tax' : 'Belum Disubmit');
+        $step2BadgeClass = $isSubmitted ? 'success' : ($waitingTax ? 'warning' : 'secondary');
+        $step2Icon = $isSubmitted ? 'fas fa-check' : ($waitingTax ? 'fas fa-search-dollar' : 'fas fa-hourglass-start');
+        $step2Actor = $isSubmitted ? ($this->creator->name ?? 'User') : ($waitingTax ? 'Tim Tax' : '-');
+
         $step2 = [
             'step' => 2,
             'name' => 'PO Disubmit',
-            'status' => $isSubmitted ? 'completed' : 'greyscale',
-            'badge' => $isSubmitted ? 'Telah Disubmit' : 'Belum Disubmit',
-            'badge_class' => $isSubmitted ? 'success' : 'secondary',
-            'icon' => $isSubmitted ? 'fas fa-check' : 'fas fa-hourglass-start',
-            'actor' => $isSubmitted ? ($this->creator->name ?? 'User') : '-',
+            'status' => $step2Status,
+            'badge' => $step2Badge,
+            'badge_class' => $step2BadgeClass,
+            'icon' => $step2Icon,
+            'actor' => $step2Actor,
             'time' => $isSubmitted && $this->created_at ? $this->created_at->format('d/m/Y H:i') : '-',
         ];
 
@@ -379,7 +579,41 @@ class PurchaseOrder extends Model
             'time' => $step3Time,
         ];
 
-        // Step 4: Penerimaan Barang
+        // Step 4: Pembayaran
+        $isPaidFull = ($this->payment_status === self::PAYMENT_PAID);
+        $isPaidPartial = ($this->payment_status === self::PAYMENT_PARTIAL);
+
+        if ($isPaidFull) {
+            $step4Status = 'completed';
+            $step4Badge = 'Lunas';
+            $step4BadgeClass = 'success';
+            $step4Icon = 'fas fa-check-circle';
+        } elseif ($isPaidPartial) {
+            $step4Status = 'current status-info';
+            $step4Badge = 'Sebagian';
+            $step4BadgeClass = 'info';
+            $step4Icon = 'fas fa-hourglass-half';
+        } elseif ($this->status === self::STATUS_APPROVED) {
+            $step4Status = 'current status-pending';
+            $step4Badge = 'Belum Lunas';
+            $step4BadgeClass = 'danger';
+            $step4Icon = 'fas fa-times-circle';
+        } else {
+            $step4Status = 'greyscale';
+            $step4Badge = 'Belum Lunas';
+            $step4BadgeClass = 'secondary';
+            $step4Icon = 'fas fa-times-circle';
+        }
+        $step4 = [
+            'step' => 4,
+            'name' => 'Pembayaran',
+            'status' => $step4Status,
+            'badge' => $step4Badge,
+            'badge_class' => $step4BadgeClass,
+            'icon' => $step4Icon,
+        ];
+
+        // Step 5: Penerimaan Barang
         $totalQtyOrdered = $this->details ? $this->details->sum('quantity') : 0;
         $totalQtyReceived = $this->details ? $this->details->sum('received_quantity') : 0;
         $receiptPercent = $totalQtyOrdered > 0 ? round(($totalQtyReceived / $totalQtyOrdered) * 100) : 0;
@@ -389,70 +623,36 @@ class PurchaseOrder extends Model
         $isWaitingReceipt = ($this->status === self::STATUS_APPROVED && $this->receipt_status === self::RECEIPT_NOT_RECEIVED);
 
         if ($isReceivedFull) {
-            $step4Status = 'completed';
-            $step4Badge = 'Diterima Lengkap';
-            $step4BadgeClass = 'success';
-            $step4Icon = 'fas fa-check-circle';
-        } elseif ($isReceivedPartial) {
-            $step4Status = 'current status-info';
-            $step4Badge = 'Sebagian (' . $totalQtyReceived . '/' . $totalQtyOrdered . ')';
-            $step4BadgeClass = 'info';
-            $step4Icon = 'fas fa-boxes';
-        } elseif ($isWaitingReceipt) {
-            $step4Status = 'current status-pending';
-            $step4Badge = 'Belum Diterima';
-            $step4BadgeClass = 'secondary';
-            $step4Icon = 'fas fa-box';
-        } else {
-            $step4Status = 'greyscale';
-            $step4Badge = 'Belum Diterima';
-            $step4BadgeClass = 'secondary';
-            $step4Icon = 'fas fa-box';
-        }
-        $step4 = [
-            'step' => 4,
-            'name' => 'Penerimaan Barang',
-            'status' => $step4Status,
-            'badge' => $step4Badge,
-            'badge_class' => $step4BadgeClass,
-            'icon' => $step4Icon,
-            'percent' => $receiptPercent,
-            'received' => $totalQtyReceived,
-            'ordered' => $totalQtyOrdered,
-        ];
-
-        // Step 5: Pembayaran
-        $isPaidFull = ($this->payment_status === self::PAYMENT_PAID);
-        $isPaidPartial = ($this->payment_status === self::PAYMENT_PARTIAL);
-
-        if ($isPaidFull) {
             $step5Status = 'completed';
-            $step5Badge = 'Lunas';
+            $step5Badge = 'Diterima Lengkap';
             $step5BadgeClass = 'success';
             $step5Icon = 'fas fa-check-circle';
-        } elseif ($isPaidPartial) {
+        } elseif ($isReceivedPartial) {
             $step5Status = 'current status-info';
-            $step5Badge = 'Sebagian';
+            $step5Badge = 'Sebagian (' . $totalQtyReceived . '/' . $totalQtyOrdered . ')';
             $step5BadgeClass = 'info';
-            $step5Icon = 'fas fa-hourglass-half';
-        } elseif ($this->status === self::STATUS_APPROVED) {
+            $step5Icon = 'fas fa-boxes';
+        } elseif ($isWaitingReceipt) {
             $step5Status = 'current status-pending';
-            $step5Badge = 'Belum Lunas';
-            $step5BadgeClass = 'danger';
-            $step5Icon = 'fas fa-times-circle';
+            $step5Badge = 'Belum Diterima';
+            $step5BadgeClass = 'secondary';
+            $step5Icon = 'fas fa-box';
         } else {
             $step5Status = 'greyscale';
-            $step5Badge = 'Belum Lunas';
+            $step5Badge = 'Belum Diterima';
             $step5BadgeClass = 'secondary';
-            $step5Icon = 'fas fa-times-circle';
+            $step5Icon = 'fas fa-box';
         }
         $step5 = [
             'step' => 5,
-            'name' => 'Pembayaran',
+            'name' => 'Penerimaan Barang',
             'status' => $step5Status,
             'badge' => $step5Badge,
             'badge_class' => $step5BadgeClass,
             'icon' => $step5Icon,
+            'percent' => $receiptPercent,
+            'received' => $totalQtyReceived,
+            'ordered' => $totalQtyOrdered,
         ];
 
         // Step 6: PO Selesai
@@ -486,11 +686,19 @@ class PurchaseOrder extends Model
             $currentBadgeClass = 'warning';
             $progress = 35;
         } elseif ($this->status === self::STATUS_DRAFT) {
-            $currentStep = 1;
-            $currentTitle = 'PO Dibuat';
-            $currentLabel = 'Langkah 1/6: Draft';
-            $currentBadgeClass = 'secondary';
-            $progress = 15;
+            if ($this->isWaitingTaxReview()) {
+                $currentStep = 2;
+                $currentTitle = 'Review Tax';
+                $currentLabel = 'Langkah 2/6: Menunggu Review Tax';
+                $currentBadgeClass = 'warning';
+                $progress = 25;
+            } else {
+                $currentStep = 1;
+                $currentTitle = 'PO Dibuat';
+                $currentLabel = 'Langkah 1/6: Draft';
+                $currentBadgeClass = 'secondary';
+                $progress = 15;
+            }
         } elseif ($isApproved) {
             if ($isReceivedFull && $isPaidFull) {
                 $currentStep = 6;
@@ -498,28 +706,28 @@ class PurchaseOrder extends Model
                 $currentLabel = 'Langkah 6/6: Selesai';
                 $currentBadgeClass = 'success';
                 $progress = 100;
-            } elseif ($isReceivedFull) {
-                $currentStep = 5;
-                $currentTitle = 'Pembayaran';
-                $currentLabel = 'Langkah 5/6: Pembayaran (' . $this->payment_status_label . ')';
-                $currentBadgeClass = 'info';
-                $progress = 85;
             } elseif ($isPaidFull) {
-                $currentStep = 4;
+                $currentStep = 5;
                 $currentTitle = 'Penerimaan Barang';
-                $currentLabel = 'Langkah 4/6: Barang (' . $this->receipt_status_label . ')';
+                $currentLabel = 'Langkah 5/6: Barang (' . $this->receipt_status_label . ')';
                 $currentBadgeClass = 'info';
                 $progress = 85;
-            } elseif ($isReceivedPartial || $isPaidPartial) {
+            } elseif ($isReceivedFull) {
                 $currentStep = 4;
-                $currentTitle = 'Penerimaan / Pembayaran';
+                $currentTitle = 'Pembayaran';
+                $currentLabel = 'Langkah 4/6: Pembayaran (' . $this->payment_status_label . ')';
+                $currentBadgeClass = 'info';
+                $progress = 85;
+            } elseif ($isPaidPartial || $isReceivedPartial) {
+                $currentStep = 4;
+                $currentTitle = 'Pembayaran / Penerimaan';
                 $currentLabel = 'Langkah 4 & 5: Proses Sebagian';
                 $currentBadgeClass = 'info';
                 $progress = 65;
             } else {
                 $currentStep = 4;
-                $currentTitle = 'Penerimaan Barang';
-                $currentLabel = 'Langkah 4/6: Disetujui (Siap Diterima)';
+                $currentTitle = 'Pembayaran';
+                $currentLabel = 'Langkah 4/6: Disetujui (Siap Dibayar)';
                 $currentBadgeClass = 'primary';
                 $progress = 50;
             }
@@ -557,15 +765,18 @@ class PurchaseOrder extends Model
     /**
      * Approve PO and auto-generate payment schedules
      */
-    public function approve(int $approverId): bool
+    public function approve(?int $approverId = null): bool
     {
         if (!$this->canApprove()) {
             return false;
         }
 
         $this->status = self::STATUS_APPROVED;
-        $this->approved_by = $approverId;
+        if ($approverId) {
+            $this->approved_by = $approverId;
+        }
         $this->approved_at = now();
+        $this->approval_token = null; // Invalidate token once processed
 
         // Calculate payment due date if payment term exists
         if ($this->paymentTerm) {
@@ -614,17 +825,40 @@ class PurchaseOrder extends Model
     /**
      * Reject PO
      */
-    public function reject(int $approverId, string $reason): bool
+    public function reject(?int $approverId = null, string $reason = ''): bool
     {
         if (!$this->canApprove()) {
             return false;
         }
 
         $this->status = self::STATUS_REJECTED;
-        $this->approved_by = $approverId;
+        if ($approverId) {
+            $this->approved_by = $approverId;
+        }
         $this->rejection_reason = $reason;
         $this->approved_at = now();
+        $this->approval_token = null; // Invalidate token once processed
         return $this->save();
+    }
+
+    /**
+     * Check if a given approval token is valid
+     */
+    public function isApprovalTokenValid(string $token): bool
+    {
+        if (empty($this->approval_token) || $this->approval_token !== $token) {
+            return false;
+        }
+
+        if ($this->status !== self::STATUS_PENDING) {
+            return false;
+        }
+
+        if ($this->approval_token_expires_at && now()->greaterThan($this->approval_token_expires_at)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -843,9 +1077,42 @@ class PurchaseOrder extends Model
             $this->ppn_amount = 0;
         }
 
-        // Final total
-        $this->total_amount = $afterDiscount + $this->ppn_amount;
+        // Calculate PPh (Withholding tax: reduces total payable)
+        // If items have individual PPh, sum item-level PPh amounts
+        $itemPphTotal = (float) $this->details()->where('is_pph', true)->sum('pph_amount');
+
+        if ($itemPphTotal > 0) {
+            $this->pph_amount = $itemPphTotal;
+        } elseif ($this->is_pph) {
+            if (in_array($this->pph_type, ['custom_nominal', 'nominal'])) {
+                // If custom nominal, use existing pph_amount or fallback from percentage
+                if ((float) $this->pph_amount <= 0 && $this->pph_percentage > 0) {
+                    $this->pph_amount = ($afterDiscount * $this->pph_percentage) / 100;
+                }
+                if ($afterDiscount > 0 && (float) $this->pph_amount > 0) {
+                    $this->pph_percentage = round(($this->pph_amount / $afterDiscount) * 100, 4);
+                }
+            } elseif ($this->pph_percentage > 0) {
+                // Otherwise use document-level PPh percentage
+                $this->pph_amount = ($afterDiscount * $this->pph_percentage) / 100;
+            } else {
+                $this->pph_amount = 0;
+            }
+        } else {
+            $this->pph_amount = 0;
+        }
+
+        // Final total (Subtotal - Discount + PPN - PPh)
+        $this->total_amount = $afterDiscount + $this->ppn_amount - $this->pph_amount;
         $this->save();
+    }
+
+    /**
+     * Get PPh Label description
+     */
+    public function getPphLabelAttribute(): string
+    {
+        return 'PPh';
     }
 
     /**

@@ -2,106 +2,92 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PaymentTermRequest;
 use App\Models\PaymentTerm;
+use App\Services\PaymentTermService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymentTermController extends Controller
 {
+    public function __construct(
+        protected PaymentTermService $paymentTermService
+    ) {}
+
     /**
      * Display a listing of payment terms.
      */
     public function index(Request $request)
     {
-        $query = PaymentTerm::query();
+        $filters = $request->only(['search', 'status']);
+        $paymentTerms = $this->paymentTermService->getPaginatedList($filters, 10);
 
-        if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%");
-        }
-
-        $paymentTerms = $query->orderBy('payment_type')
-            ->orderBy('days')
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('payment-terms.index', compact('paymentTerms'));
-    }
-
-    /**
-     * Show the form for creating a new payment term.
-     */
-    public function create()
-    {
-        return view('payment-terms.form', [
-            'paymentTerm' => null,
+        return view('payment-terms.index', [
+            'paymentTerms' => $paymentTerms,
+            'moduleName' => 'Term Pembayaran',
+            'moduleRoute' => 'payment-terms',
         ]);
     }
 
     /**
      * Store a newly created payment term.
      */
-    public function store(Request $request)
+    public function store(PaymentTermRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'payment_type' => 'required|in:full,partial',
-            'days' => 'required_if:payment_type,full|integer|min:0',
-            'installments' => 'required_if:payment_type,partial',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ], [
-            'name.required' => 'Nama term pembayaran wajib diisi.',
-            'payment_type.required' => 'Tipe pembayaran wajib dipilih.',
-            'days.required_if' => 'Jumlah hari wajib diisi untuk pembayaran penuh.',
-            'installments.required_if' => 'Konfigurasi cicilan wajib diisi.',
-        ]);
+        $term = $this->paymentTermService->createPaymentTerm($request->validated());
 
-        $data = [
-            'name' => $validated['name'],
-            'payment_type' => $validated['payment_type'],
-            'days' => $validated['payment_type'] === 'full' ? ($validated['days'] ?? 0) : 0,
-            'installments' => $validated['payment_type'] === 'partial' ? $validated['installments'] : null,
-            'description' => $validated['description'] ?? null,
-            'is_active' => $request->boolean('is_active', true),
-        ];
-
-        PaymentTerm::create($data);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Term pembayaran berhasil ditambahkan.',
+                'data' => $term,
+            ]);
+        }
 
         return redirect()->route('payment-terms.index')
             ->with('success', 'Term pembayaran berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the payment term.
+     * Display payment term data for modal.
      */
-    public function edit(PaymentTerm $paymentTerm)
+    public function show(PaymentTerm $paymentTerm): JsonResponse
     {
+        return response()->json([
+            'success' => true,
+            'data' => $paymentTerm,
+        ]);
+    }
+
+    /**
+     * Show form for editing.
+     */
+    public function edit(PaymentTerm $paymentTerm, Request $request)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $paymentTerm,
+            ]);
+        }
+
         return view('payment-terms.form', compact('paymentTerm'));
     }
 
     /**
      * Update the payment term.
      */
-    public function update(Request $request, PaymentTerm $paymentTerm)
+    public function update(PaymentTermRequest $request, PaymentTerm $paymentTerm)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'payment_type' => 'required|in:full,partial',
-            'days' => 'required_if:payment_type,full|integer|min:0',
-            'installments' => 'required_if:payment_type,partial',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $updated = $this->paymentTermService->updatePaymentTerm($paymentTerm->id, $request->validated());
 
-        $data = [
-            'name' => $validated['name'],
-            'payment_type' => $validated['payment_type'],
-            'days' => $validated['payment_type'] === 'full' ? ($validated['days'] ?? 0) : 0,
-            'installments' => $validated['payment_type'] === 'partial' ? $validated['installments'] : null,
-            'description' => $validated['description'] ?? null,
-            'is_active' => $request->boolean('is_active', true),
-        ];
-
-        $paymentTerm->update($data);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Term pembayaran berhasil diperbarui.',
+                'data' => $updated,
+            ]);
+        }
 
         return redirect()->route('payment-terms.index')
             ->with('success', 'Term pembayaran berhasil diperbarui.');
@@ -110,16 +96,18 @@ class PaymentTermController extends Controller
     /**
      * Remove the payment term.
      */
-    public function destroy(PaymentTerm $paymentTerm)
+    public function destroy(PaymentTerm $paymentTerm, Request $request)
     {
-        if ($paymentTerm->purchaseOrders()->count() > 0) {
-            return redirect()->route('payment-terms.index')
-                ->with('error', 'Term pembayaran masih digunakan di PO.');
+        $result = $this->paymentTermService->deletePaymentTerm($paymentTerm->id);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
         }
 
-        $paymentTerm->delete();
+        if (!$result['success']) {
+            return redirect()->route('payment-terms.index')->with('error', $result['message']);
+        }
 
-        return redirect()->route('payment-terms.index')
-            ->with('success', 'Term pembayaran berhasil dihapus.');
+        return redirect()->route('payment-terms.index')->with('success', $result['message']);
     }
 }

@@ -24,7 +24,11 @@ class POApprovalRequest extends Mailable
     public function __construct(PurchaseOrder $po)
     {
         $this->po = $po;
-        $this->approvalUrl = route('purchase-orders.show', $po->id);
+        if (!empty($po->approval_token)) {
+            $this->approvalUrl = route('po.external-approval', ['token' => $po->approval_token]);
+        } else {
+            $this->approvalUrl = route('purchase-orders.show', $po->id);
+        }
     }
 
     /**

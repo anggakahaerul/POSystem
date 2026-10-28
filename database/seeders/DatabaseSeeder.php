@@ -109,11 +109,11 @@ class DatabaseSeeder extends Seeder
 
         // Create Vendors (use firstOrCreate to avoid duplicates)
         $vendors = [
-            ['code' => 'VND0001', 'name' => 'PT. Elektronik Jaya', 'email' => 'sales@elektronikjaya.com', 'phone' => '021-5551234', 'address' => 'Jl. Industri No. 123, Jakarta', 'is_active' => true],
-            ['code' => 'VND0002', 'name' => 'CV. ATK Sejahtera', 'email' => 'order@atksejahtera.co.id', 'phone' => '021-5554567', 'address' => 'Jl. Perkantoran No. 45, Bekasi', 'is_active' => true],
-            ['code' => 'VND0003', 'name' => 'PT. Furniture Modern', 'email' => 'info@furnituremodern.com', 'phone' => '021-5557890', 'address' => 'Jl. Mebel Raya No. 78, Tangerang', 'is_active' => true],
-            ['code' => 'VND0004', 'name' => 'Toko Komputer Maju', 'email' => 'sales@komputermaju.com', 'phone' => '021-5552345', 'address' => 'Jl. IT Center No. 12, Jakarta', 'is_active' => true],
-            ['code' => 'VND0005', 'name' => 'PT. Supply Chain Indo', 'email' => 'procurement@supplyindo.co.id', 'phone' => '021-5556789', 'address' => 'Jl. Logistik No. 99, Cikarang', 'is_active' => true],
+            ['code' => 'VND0001', 'name' => 'PT. Elektronik Jaya', 'email' => 'sales@elektronikjaya.com', 'phone' => '021-5551234', 'address' => 'Jl. Industri No. 123, Jakarta', 'payment_term_id' => 1, 'is_active' => true],
+            ['code' => 'VND0002', 'name' => 'CV. ATK Sejahtera', 'email' => 'order@atksejahtera.co.id', 'phone' => '021-5554567', 'address' => 'Jl. Perkantoran No. 45, Bekasi', 'payment_term_id' => 7, 'is_active' => true],
+            ['code' => 'VND0003', 'name' => 'PT. Furniture Modern', 'email' => 'info@furnituremodern.com', 'phone' => '021-5557890', 'address' => 'Jl. Mebel Raya No. 78, Tangerang', 'payment_term_id' => 4, 'is_active' => true],
+            ['code' => 'VND0004', 'name' => 'Toko Komputer Maju', 'email' => 'sales@komputermaju.com', 'phone' => '021-5552345', 'address' => 'Jl. IT Center No. 12, Jakarta', 'payment_term_id' => 4, 'is_active' => true],
+            ['code' => 'VND0005', 'name' => 'PT. Supply Chain Indo', 'email' => 'procurement@supplyindo.co.id', 'phone' => '021-5556789', 'address' => 'Jl. Logistik No. 99, Cikarang', 'payment_term_id' => 4, 'is_active' => true],
         ];
 
         foreach ($vendors as $vnd) {

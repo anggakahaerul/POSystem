@@ -94,13 +94,61 @@
                                 @enderror
                             </div>
                         </div>
+                    <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="npwp">NPWP</label>
+                                <label for="payment_term_id">Term of Payment</label>
+                                <select name="payment_term_id" id="payment_term_id" class="form-control @error('payment_term_id') is-invalid @enderror">
+                                    <option value="">-- Pilih Term of Payment --</option>
+                                    @foreach(\App\Models\PaymentTerm::active()->orderBy('days')->get() as $term)
+                                        <option value="{{ $term->id }}" {{ old('payment_term_id', $vendor?->payment_term_id) == $term->id ? 'selected' : '' }}>
+                                            {{ $term->display_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('payment_term_id')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="bank_info">Informasi Rekening Bank</label>
+                                <input type="text" name="bank_info" id="bank_info" 
+                                    class="form-control @error('bank_info') is-invalid @enderror" 
+                                    value="{{ old('bank_info', $vendor?->bank_info) }}" 
+                                    placeholder="Nama bank, nomor rekening, atas nama">
+                                @error('bank_info')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="npwp_type">Tipe NPWP</label>
+                                <select name="npwp_type" id="npwp_type" class="form-control @error('npwp_type') is-invalid @enderror">
+                                    <option value="">-- Pilih Tipe NPWP --</option>
+                                    @foreach(\App\Models\Vendor::NPWP_TYPES as $type)
+                                        <option value="{{ $type }}" {{ old('npwp_type', $vendor?->npwp_type) == $type ? 'selected' : '' }}>
+                                            NPWP {{ $type }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('npwp_type')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="npwp">Nomor NPWP</label>
                                 <input type="text" name="npwp" id="npwp" 
                                     class="form-control @error('npwp') is-invalid @enderror" 
                                     value="{{ old('npwp', $vendor?->npwp) }}" 
-                                    placeholder="Nomor NPWP">
+                                    placeholder="00.000.000.0-000.000">
                                 @error('npwp')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
@@ -114,16 +162,6 @@
                             class="form-control @error('address') is-invalid @enderror" 
                             rows="2" placeholder="Alamat lengkap vendor">{{ old('address', $vendor?->address) }}</textarea>
                         @error('address')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="bank_info">Informasi Bank</label>
-                        <textarea name="bank_info" id="bank_info" 
-                            class="form-control @error('bank_info') is-invalid @enderror" 
-                            rows="2" placeholder="Nama bank, nomor rekening, atas nama">{{ old('bank_info', $vendor?->bank_info) }}</textarea>
-                        @error('bank_info')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>

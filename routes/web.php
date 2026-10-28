@@ -1,16 +1,23 @@
 <?php
 
+use App\Http\Controllers\ApprovalRuleController;
+use App\Http\Controllers\AssetTypeController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\MasterExportImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\POPaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\TaxReviewController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +41,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// External Approval Routes (Direct Approval via Email Magic Link - No Login Required)
+Route::get('/po-approval/{token}', [PurchaseOrderController::class, 'externalApproval'])->name('po.external-approval');
+Route::post('/po-approval/{token}/approve', [PurchaseOrderController::class, 'processExternalApprove'])->name('po.external-approve');
+Route::post('/po-approval/{token}/reject', [PurchaseOrderController::class, 'processExternalReject'])->name('po.external-reject');
+
 // Authenticated routes
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -41,29 +53,63 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Master Data - Categories
-    Route::resource('categories', CategoryController::class)->except(['show']);
+    // Master Data (Khusus HR dan Administrator)
+    Route::middleware('master.data')->group(function () {
+        // Categories & Asset Types
+        Route::resource('categories', CategoryController::class);
+        Route::get('/api/asset-types', [AssetTypeController::class, 'getActiveList'])->name('api.asset-types.index');
+        Route::resource('asset-types', AssetTypeController::class);
 
-    // Master Data - Products
-    Route::resource('products', ProductController::class)->except(['show']);
+        // Products
+        Route::resource('products', ProductController::class);
 
-    // Master Data - Vendors
-    Route::resource('vendors', VendorController::class);
+        // Vendors
+        Route::resource('vendors', VendorController::class);
 
-    // Master Data - Branches
-    Route::resource('branches', BranchController::class)->except(['show']);
+        // Branches
+        Route::resource('branches', BranchController::class);
 
-    // Master Data - Payment Terms
-    Route::resource('payment-terms', PaymentTermController::class)->except(['show']);
+        // Payment Terms
+        Route::resource('payment-terms', PaymentTermController::class);
+
+        // Departments
+        Route::resource('departments', DepartmentController::class);
+
+        // Excel Import & Export
+        Route::get('/master-data/{type}/export', [MasterExportImportController::class, 'export'])->name('master-data.export');
+        Route::get('/master-data/{type}/template', [MasterExportImportController::class, 'template'])->name('master-data.template');
+        Route::post('/master-data/{type}/import', [MasterExportImportController::class, 'import'])->name('master-data.import');
+
+        // Approval Rules
+        Route::resource('approval-rules', ApprovalRuleController::class)->except(['create', 'edit']);
+        Route::post('/approval-rules/{approvalRule}/toggle', [ApprovalRuleController::class, 'toggle'])->name('approval-rules.toggle');
+    });
+
+    // Purchase Requests
+    Route::resource('purchase-requests', PurchaseRequestController::class);
+    Route::get('/purchase-requests/{purchase_request}/download', [PurchaseRequestController::class, 'downloadAttachment'])->name('purchase-requests.download');
+    Route::post('/purchase-requests/{purchase_request}/attach-po', [PurchaseRequestController::class, 'attachPo'])->name('purchase-requests.attach-po');
+    Route::post('/purchase-requests/{purchase_request}/detach-po/{purchaseOrder}', [PurchaseRequestController::class, 'detachPo'])->name('purchase-requests.detach-po');
 
     // Purchase Orders
     Route::resource('purchase-orders', PurchaseOrderController::class);
     Route::post('/purchase-orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit');
+    Route::post('/purchase-orders/{purchaseOrder}/revise', [PurchaseOrderController::class, 'revise'])->name('purchase-orders.revise');
     Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
     Route::post('/purchase-orders/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->name('purchase-orders.reject');
     Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive');
     Route::get('/purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
     Route::get('/purchase-orders/{purchaseOrder}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview');
+
+    // Goods Receipts (Daftar Barang Masuk)
+    Route::get('/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index');
+    Route::get('/goods-receipts/export', [GoodsReceiptController::class, 'export'])->name('goods-receipts.export');
+
+    // Tax Review (Reviewer Pajak PO)
+    Route::get('/tax-reviews', [TaxReviewController::class, 'index'])->name('tax-reviews.index');
+    Route::get('/tax-reviews/{purchaseOrder}', [TaxReviewController::class, 'show'])->name('tax-reviews.show');
+    Route::put('/tax-reviews/{purchaseOrder}', [TaxReviewController::class, 'update'])->name('tax-reviews.update');
+    Route::post('/purchase-orders/{purchaseOrder}/send-tax-review', [TaxReviewController::class, 'sendTaxReviewRequest'])->name('purchase-orders.send-tax-review');
 
     // PO Payments (Installments)
     Route::post('/purchase-orders/{purchaseOrder}/payments', [POPaymentController::class, 'store'])->name('po-payments.store');
@@ -72,9 +118,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/po-payments/{payment}', [POPaymentController::class, 'destroy'])->name('po-payments.destroy');
 
     // User Management (Admin only)
-    Route::resource('users', UserController::class)->except(['show']);
-    Route::resource('roles', RoleController::class)->except(['show']);
-    Route::resource('permissions', PermissionController::class)->except(['show']);
+    Route::resource('users', UserController::class);
+    Route::resource('roles', RoleController::class);
+    Route::resource('permissions', PermissionController::class);
 
     // API for Products (AJAX)
     Route::get('/api/products/{product}', [ProductController::class, 'getProduct'])->name('api.products.show');
@@ -85,3 +131,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.email.update');
     Route::post('/settings/email/test', [SettingController::class, 'testEmail'])->name('settings.email.test');
 });
+
+// Public PO External Approval (Token-based, No Login Required)
+Route::get('/po-approval/{token}', [PurchaseOrderController::class, 'externalApproval'])->name('po.external-approval');
+Route::post('/po-approval/{token}/approve', [PurchaseOrderController::class, 'processExternalApprove'])->name('po.external-approve');
+Route::post('/po-approval/{token}/reject', [PurchaseOrderController::class, 'processExternalReject'])->name('po.external-reject');
+Route::get('/po-approval/{token}/preview-pdf', [PurchaseOrderController::class, 'externalPreviewPdf'])->name('po.external-preview-pdf');

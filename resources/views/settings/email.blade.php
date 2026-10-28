@@ -102,7 +102,7 @@
                     <p class="text-muted small">Aktifkan/nonaktifkan notifikasi email otomatis</p>
 
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="notify_submit" 
                                     name="notify_submit" value="1"
@@ -113,7 +113,18 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="notify_tax_review" 
+                                    name="notify_tax_review" value="1"
+                                    {{ ($settings['notify_tax_review'] ?? '1') === '1' ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="notify_tax_review">
+                                    <strong>Review Pajak (PPh)</strong><br>
+                                    <small class="text-muted">Kirim email permohonan & hasil review pajak</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="notify_approve" 
                                     name="notify_approve" value="1"
@@ -124,7 +135,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="notify_reject" 
                                     name="notify_reject" value="1"
