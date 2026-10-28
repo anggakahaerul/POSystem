@@ -14,14 +14,23 @@ return new class extends Migration
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // 1. Buat Permissions khusus Tax
-        $viewTax = Permission::firstOrCreate(['name' => 'view tax']);
-        $reviewTax = Permission::firstOrCreate(['name' => 'review tax']);
+        // 1. Buat / pastikan permissions yang dibutuhkan ada
+        $permissions = [
+            'view tax',
+            'review tax',
+            'view purchase-orders',
+            'view vendors',
+        ];
 
-        // 2. Berikan ke Role Admin
+        $permModels = [];
+        foreach ($permissions as $permName) {
+            $permModels[$permName] = Permission::firstOrCreate(['name' => $permName]);
+        }
+
+        // 2. Berikan ke Role Admin jika role sudah ada
         $admin = Role::where('name', 'Admin')->first();
         if ($admin) {
-            $admin->givePermissionTo([$viewTax, $reviewTax]);
+            $admin->givePermissionTo([$permModels['view tax'], $permModels['review tax']]);
         }
 
         // 3. Buat Role khusus Tax
@@ -32,6 +41,8 @@ return new class extends Migration
             'view purchase-orders',
             'view vendors',
         ]);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }
 
     /**

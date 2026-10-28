@@ -122,6 +122,9 @@ class RoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
+        // Re-clear cache so Spatie registrar immediately recognizes all newly inserted permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         // Admin gets all permissions
         $admin->syncPermissions(Permission::all());
 
