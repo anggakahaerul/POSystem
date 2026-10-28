@@ -186,8 +186,8 @@
                 @endif
 
                 <!-- Asset Management -->
-                <li class="nav-item {{ request()->is('assets*') || request()->is('asset-*') ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link {{ request()->is('assets*') || request()->is('asset-*') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->is('asset-management*') || request()->is('daftar-barang*') || request()->routeIs('assets.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ request()->is('asset-management*') || request()->is('daftar-barang*') || request()->routeIs('assets.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-boxes"></i>
                         <p>
                             Asset Management
@@ -196,7 +196,7 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.*') ? 'active' : '' }}">
+                            <a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.*') || request()->is('asset-management*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Daftar Barang</p>
                             </a>
