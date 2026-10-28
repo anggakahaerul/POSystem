@@ -86,24 +86,36 @@ Route::middleware('auth')->group(function () {
     });
 
     // Purchase Requests
-    Route::resource('purchase-requests', PurchaseRequestController::class);
-    Route::get('/purchase-requests/{purchase_request}/download', [PurchaseRequestController::class, 'downloadAttachment'])->name('purchase-requests.download');
-    Route::post('/purchase-requests/{purchase_request}/attach-po', [PurchaseRequestController::class, 'attachPo'])->name('purchase-requests.attach-po');
-    Route::post('/purchase-requests/{purchase_request}/detach-po/{purchaseOrder}', [PurchaseRequestController::class, 'detachPo'])->name('purchase-requests.detach-po');
+    Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])->name('purchase-requests.index')->middleware('can:view purchase-requests');
+    Route::get('/purchase-requests/create', [PurchaseRequestController::class, 'create'])->name('purchase-requests.create')->middleware('can:create purchase-requests');
+    Route::post('/purchase-requests', [PurchaseRequestController::class, 'store'])->name('purchase-requests.store')->middleware('can:create purchase-requests');
+    Route::get('/purchase-requests/{purchase_request}', [PurchaseRequestController::class, 'show'])->name('purchase-requests.show')->middleware('can:view purchase-requests');
+    Route::get('/purchase-requests/{purchase_request}/edit', [PurchaseRequestController::class, 'edit'])->name('purchase-requests.edit')->middleware('can:edit purchase-requests');
+    Route::put('/purchase-requests/{purchase_request}', [PurchaseRequestController::class, 'update'])->name('purchase-requests.update')->middleware('can:edit purchase-requests');
+    Route::delete('/purchase-requests/{purchase_request}', [PurchaseRequestController::class, 'destroy'])->name('purchase-requests.destroy')->middleware('can:delete purchase-requests');
+    Route::get('/purchase-requests/{purchase_request}/download', [PurchaseRequestController::class, 'downloadAttachment'])->name('purchase-requests.download')->middleware('can:view purchase-requests');
+    Route::post('/purchase-requests/{purchase_request}/attach-po', [PurchaseRequestController::class, 'attachPo'])->name('purchase-requests.attach-po')->middleware('can:create purchase-orders');
+    Route::post('/purchase-requests/{purchase_request}/detach-po/{purchaseOrder}', [PurchaseRequestController::class, 'detachPo'])->name('purchase-requests.detach-po')->middleware('can:create purchase-orders');
 
     // Purchase Orders
-    Route::resource('purchase-orders', PurchaseOrderController::class);
-    Route::post('/purchase-orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit');
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index')->middleware('can:view purchase-orders');
+    Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create')->middleware('can:create purchase-orders');
+    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store')->middleware('can:create purchase-orders');
+    Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show')->middleware('can:view purchase-orders');
+    Route::get('/purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit')->middleware('can:edit purchase-orders');
+    Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update')->middleware('can:edit purchase-orders');
+    Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy')->middleware('can:delete purchase-orders');
+    Route::post('/purchase-orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit')->middleware('can:submit purchase-orders');
     Route::post('/purchase-orders/{purchaseOrder}/revise', [PurchaseOrderController::class, 'revise'])->name('purchase-orders.revise');
-    Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
-    Route::post('/purchase-orders/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->name('purchase-orders.reject');
-    Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive');
-    Route::get('/purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
-    Route::get('/purchase-orders/{purchaseOrder}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview');
+    Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve')->middleware('can:approve purchase-orders');
+    Route::post('/purchase-orders/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->name('purchase-orders.reject')->middleware('can:reject purchase-orders');
+    Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive')->middleware('can:receive goods-receipts');
+    Route::get('/purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print')->middleware('can:print purchase-orders');
+    Route::get('/purchase-orders/{purchaseOrder}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview')->middleware('can:print purchase-orders');
 
     // Goods Receipts (Daftar Barang Masuk)
-    Route::get('/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index');
-    Route::get('/goods-receipts/export', [GoodsReceiptController::class, 'export'])->name('goods-receipts.export');
+    Route::get('/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index')->middleware('can:view goods-receipts');
+    Route::get('/goods-receipts/export', [GoodsReceiptController::class, 'export'])->name('goods-receipts.export')->middleware('can:view goods-receipts');
 
     // Tax Review (Reviewer Pajak PO)
     Route::get('/tax-reviews', [TaxReviewController::class, 'index'])->name('tax-reviews.index');

@@ -792,7 +792,7 @@
                     <h3 class="card-title"><i class="fas fa-cogs mr-2"></i>Aksi</h3>
                 </div>
                 <div class="card-body">
-                    @if ($po->canEdit())
+                    @if ($po->canEdit() && Auth::user()->can('edit purchase-orders'))
                         <a href="{{ route('purchase-orders.edit', $po->id) }}" class="btn btn-warning btn-block">
                             <i class="fas fa-edit mr-2"></i> Edit PO
                         </a>
@@ -821,9 +821,11 @@
                                     </div>
                                 </div>
 
+                                @can('submit purchase-orders')
                                 <button type="button" class="btn btn-info btn-block mt-2 font-weight-bold shadow-sm" data-toggle="modal" data-target="#submitModal">
                                     <i class="fas fa-paper-plane mr-2"></i> Submit untuk Approval
                                 </button>
+                                @endcan
                             @else
                                 <div class="alert alert-warning mt-2 mb-2 p-2 border-0 shadow-sm" style="border-radius: 6px; font-size: 0.83rem; background-color: #fff3cd; color: #856404;">
                                     @if ($po->tax_review_requested_at)
@@ -833,6 +835,7 @@
                                     @endif
                                 </div>
 
+                                @if (Auth::user()->can('submit purchase-orders') || Auth::user()->can('edit purchase-orders'))
                                 <button type="button" class="btn btn-warning btn-block font-weight-bold shadow-sm" data-toggle="modal" data-target="#taxReviewEmailModal">
                                     <i class="fas fa-balance-scale mr-2"></i> {{ $po->tax_review_requested_at ? 'Kirim Ulang Email ke Tim Tax' : 'Ajukan Review ke Tim Tax' }}
                                 </button>
@@ -840,11 +843,14 @@
                                 <button type="button" class="btn btn-secondary btn-block mt-2 font-weight-bold" disabled title="Review tim tax diperlukan terlebih dahulu sebelum dapat diajukan ke approval atasan">
                                     <i class="fas fa-lock mr-2"></i> Submit untuk Approval (Terkunci)
                                 </button>
+                                @endif
                             @endif
                         @else
+                            @can('submit purchase-orders')
                             <button type="button" class="btn btn-info btn-block mt-2 font-weight-bold shadow-sm" data-toggle="modal" data-target="#submitModal">
                                 <i class="fas fa-paper-plane mr-2"></i> Submit untuk Approval
                             </button>
+                            @endcan
                         @endif
                     @endif
 

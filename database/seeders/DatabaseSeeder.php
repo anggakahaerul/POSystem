@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
         // Create Branches
         $this->call(BranchSeeder::class);
 
+        // Setup Application Users (HR, Tax, Approver, etc.)
+        $this->call(AppUserSetupSeeder::class);
+
         // Create Users (use firstOrCreate to avoid duplicates)
         $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],

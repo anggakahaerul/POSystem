@@ -84,11 +84,13 @@
             <h3 class="card-title font-weight-bold m-0 text-dark">
                 <i class="fas fa-file-alt mr-2 text-primary"></i>Daftar Permintaan Pembelian
             </h3>
+            @can('create purchase-requests')
             <div class="card-tools">
                 <a href="{{ route('purchase-requests.create') }}" class="btn btn-primary btn-sm px-3 shadow-sm">
                     <i class="fas fa-plus mr-1"></i> Upload Request Baru
                 </a>
             </div>
+            @endcan
         </div>
 
         <div class="card-body p-0">
@@ -251,7 +253,7 @@
                                 </td>
                                 <td class="text-right text-nowrap">
                                     <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
-                                        @if($pr->status === 'pending')
+                                        @if($pr->status === 'pending' && auth()->user()->can('create purchase-orders'))
                                             <a href="{{ route('purchase-orders.create', ['purchase_request_id' => $pr->id]) }}" 
                                                class="btn btn-sm btn-success text-nowrap font-weight-bold d-inline-flex align-items-center shadow-sm" 
                                                title="Buat PO Baru"
@@ -263,15 +265,19 @@
                                             <a href="{{ route('purchase-requests.show', $pr->id) }}" class="btn btn-default" title="Detail">
                                                 <i class="fas fa-eye text-secondary"></i>
                                             </a>
+                                            @can('edit purchase-requests')
                                             <a href="{{ route('purchase-requests.edit', $pr->id) }}" class="btn btn-default" title="Edit">
                                                 <i class="fas fa-edit text-secondary"></i>
                                             </a>
+                                            @endcan
+                                            @can('delete purchase-requests')
                                             @if($pr->status === 'pending')
                                                 <button type="button" class="btn btn-default text-danger" title="Hapus"
                                                     onclick="deleteRequest('{{ $pr->id }}', '{{ $pr->pr_number }}')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             @endif
+                                            @endcan
                                         </div>
                                     </div>
                                     <form id="delete-form-{{ $pr->id }}" 

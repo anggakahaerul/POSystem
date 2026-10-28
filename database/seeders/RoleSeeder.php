@@ -126,7 +126,7 @@ class RoleSeeder extends Seeder
         $admin->syncPermissions(Permission::all());
 
         // Manager permissions
-        $manager->syncPermissions([
+        $managerPermissions = [
             'view users',
             'view categories',
             'view products',
@@ -143,7 +143,14 @@ class RoleSeeder extends Seeder
             'reject purchase-orders',
             'print purchase-orders',
             'view goods-receipts',
-        ]);
+        ];
+        $manager->syncPermissions($managerPermissions);
+
+        $regionalManager = Role::firstOrCreate(['name' => 'Regional Manager']);
+        $regionalManager->syncPermissions($managerPermissions);
+
+        $generalManager = Role::firstOrCreate(['name' => 'General Manager']);
+        $generalManager->syncPermissions($managerPermissions);
 
         // Purchasing permissions
         $purchasing->syncPermissions([
@@ -159,7 +166,7 @@ class RoleSeeder extends Seeder
             'view goods-receipts',
         ]);
 
-        // Finance permissions
+        // Finance permissions (Hanya view PO/PR/Master Data, print PO, dan review pajak)
         $finance->syncPermissions([
             'view categories',
             'view products',
@@ -168,26 +175,31 @@ class RoleSeeder extends Seeder
             'view departments',
             'view payment-terms',
             'view purchase-orders', 'print purchase-orders',
+            'view purchase-requests',
             'view tax', 'review tax',
             'view goods-receipts',
         ]);
 
-        // Tax permissions
+        // Tax permissions (Hanya review, koreksi, dan verifikasi/approve pajak saja)
         $tax->syncPermissions([
             'view tax',
             'review tax',
-            'view purchase-orders',
-            'view vendors',
         ]);
 
-        // HR permissions
+        // HR permissions (Lengkap: Buat PO, PR, Kelola Master Data, Users, dll)
         $hr->syncPermissions([
-            'view users', 'create users', 'edit users',
-            'view departments', 'create departments', 'edit departments',
-            'view branches',
-            'view categories',
-            'view products',
-            'view vendors',
+            'view purchase-orders', 'create purchase-orders', 'edit purchase-orders', 'delete purchase-orders', 'submit purchase-orders', 'print purchase-orders',
+            'view purchase-requests', 'create purchase-requests', 'edit purchase-requests', 'delete purchase-requests',
+            'view goods-receipts', 'receive goods-receipts',
+            'view categories', 'create categories', 'edit categories', 'delete categories',
+            'view asset-types', 'create asset-types', 'edit asset-types', 'delete asset-types',
+            'view products', 'create products', 'edit products', 'delete products',
+            'view vendors', 'create vendors', 'edit vendors', 'delete vendors',
+            'view branches', 'create branches', 'edit branches', 'delete branches',
+            'view departments', 'create departments', 'edit departments', 'delete departments',
+            'view payment-terms', 'create payment-terms', 'edit payment-terms', 'delete payment-terms',
+            'view approval-rules', 'create approval-rules', 'edit approval-rules', 'delete approval-rules',
+            'view users', 'create users', 'edit users', 'delete users',
         ]);
 
         // Gudang permissions

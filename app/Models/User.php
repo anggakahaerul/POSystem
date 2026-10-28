@@ -138,10 +138,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can approve POs (Manager or Admin)
+     * Check if user can approve POs (Manager, Regional Manager, General Manager, Admin, or has permission)
      */
     public function canApprovePO(): bool
     {
-        return $this->hasRole('Manager') || $this->hasRole('Admin');
+        return $this->hasRole(['Manager', 'Regional Manager', 'General Manager', 'Admin']) || $this->can('approve purchase-orders');
     }
 }

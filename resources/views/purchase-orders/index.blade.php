@@ -13,11 +13,13 @@
             <h3 class="card-title">
                 <i class="fas fa-file-invoice mr-2"></i>Daftar Purchase Order
             </h3>
+            @can('create purchase-orders')
             <div class="card-tools">
                 <a href="{{ route('purchase-orders.create') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus mr-1"></i> Buat PO Baru
                 </a>
             </div>
+            @endcan
         </div>
         <div class="card-body">
             <!-- Filters -->
@@ -296,11 +298,13 @@
                                             title="Detail PO">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        @if ($po->canEdit())
+                                        @if ($po->canEdit() && auth()->user()->can('edit purchase-orders'))
                                             <a href="{{ route('purchase-orders.edit', $po) }}"
                                                 class="btn-action btn-action-warning" title="Edit PO">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                        @endif
+                                        @if ($po->canEdit() && auth()->user()->can('delete purchase-orders'))
                                             <form action="{{ route('purchase-orders.destroy', $po) }}" method="POST"
                                                 class="d-inline-flex m-0 p-0" id="delete-form-{{ $po->id }}">
                                                 @csrf
@@ -317,7 +321,7 @@
                                                 <i class="fas fa-undo-alt"></i>
                                             </button>
                                         @endif
-                                        @if ($po->status == 'approved')
+                                        @if ($po->status == 'approved' && auth()->user()->can('print purchase-orders'))
                                             <a href="{{ route('purchase-orders.print', $po) }}"
                                                 class="btn-action btn-action-success" title="Print PO" target="_blank">
                                                 <i class="fas fa-print"></i>

@@ -46,6 +46,8 @@ class PurchaseRequestController extends Controller
      */
     public function create()
     {
+        abort_if(!auth()->user()->can('create purchase-requests'), 403, 'Anda tidak memiliki hak akses untuk membuat Permintaan Pembelian.');
+
         return view('purchase-requests.create');
     }
 
@@ -54,6 +56,8 @@ class PurchaseRequestController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create purchase-requests'), 403, 'Anda tidak memiliki hak akses untuk membuat Permintaan Pembelian.');
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -111,6 +115,8 @@ class PurchaseRequestController extends Controller
      */
     public function edit(PurchaseRequest $purchaseRequest)
     {
+        abort_if(!auth()->user()->can('edit purchase-requests'), 403, 'Anda tidak memiliki hak akses untuk mengubah Permintaan Pembelian.');
+
         return view('purchase-requests.edit', compact('purchaseRequest'));
     }
 
@@ -119,6 +125,8 @@ class PurchaseRequestController extends Controller
      */
     public function update(Request $request, PurchaseRequest $purchaseRequest)
     {
+        abort_if(!auth()->user()->can('edit purchase-requests'), 403, 'Anda tidak memiliki hak akses untuk mengubah Permintaan Pembelian.');
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -156,6 +164,8 @@ class PurchaseRequestController extends Controller
      */
     public function destroy(PurchaseRequest $purchaseRequest)
     {
+        abort_if(!auth()->user()->can('delete purchase-requests'), 403, 'Anda tidak memiliki hak akses untuk menghapus Permintaan Pembelian.');
+
         if ($purchaseRequest->purchaseOrders()->exists() || $purchaseRequest->purchaseOrder()->exists()) {
             return back()->with('error', 'Permintaan Pembelian tidak dapat dihapus karena sudah memiliki PO terkait.');
         }

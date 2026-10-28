@@ -78,6 +78,8 @@ class PurchaseOrderController extends Controller
      */
     public function create(Request $request)
     {
+        abort_if(!auth()->user()->can('create purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk membuat Purchase Order.');
+
         $purchaseRequest = null;
         if ($request->filled('purchase_request_id')) {
             $purchaseRequest = \App\Models\PurchaseRequest::find($request->purchase_request_id);
@@ -102,6 +104,8 @@ class PurchaseOrderController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk membuat Purchase Order.');
+
         // Clean money format from prices before validation
         $products = $request->input('products', []);
         foreach ($products as $key => $product) {
@@ -314,6 +318,8 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
+        abort_if(!auth()->user()->can('edit purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk mengubah Purchase Order.');
+
         // Can only edit draft POs
         if (!$purchaseOrder->canEdit()) {
             return redirect()->route('purchase-orders.show', $purchaseOrder->id)
@@ -340,6 +346,8 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
+        abort_if(!auth()->user()->can('edit purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk mengubah Purchase Order.');
+
         if (!$purchaseOrder->canEdit()) {
             return redirect()->route('purchase-orders.show', $purchaseOrder->id)
                 ->with('error', 'PO tidak dapat diedit.');
@@ -472,6 +480,8 @@ class PurchaseOrderController extends Controller
      */
     public function destroy(PurchaseOrder $purchaseOrder)
     {
+        abort_if(!auth()->user()->can('delete purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk menghapus Purchase Order.');
+
         if (!$purchaseOrder->canEdit()) {
             return redirect()->route('purchase-orders.index')
                 ->with('error', 'PO tidak dapat dihapus karena sudah disubmit.');
@@ -488,6 +498,8 @@ class PurchaseOrderController extends Controller
      */
     public function submit(Request $request, PurchaseOrder $purchaseOrder)
     {
+        abort_if(!auth()->user()->can('submit purchase-orders'), 403, 'Anda tidak memiliki hak akses untuk mengajukan approval Purchase Order.');
+
         if ($purchaseOrder->isWaitingTaxReview()) {
             return redirect()->route('purchase-orders.show', $purchaseOrder->id)
                 ->with('error', 'PO ini mengenakan PPh dan perlu direview oleh Tim Tax terlebih dahulu sebelum dapat diajukan ke approval atasan.');
