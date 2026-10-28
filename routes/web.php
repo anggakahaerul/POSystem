@@ -148,6 +148,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/po-payments/{payment}/record', [POPaymentController::class, 'recordPayment'])->name('po-payments.record');
     Route::delete('/po-payments/{payment}', [POPaymentController::class, 'destroy'])->name('po-payments.destroy');
 
+    // Asset Management (Daftar Barang - UI Mockup)
+    Route::get('/assets', function () {
+        return view('assets.index');
+    })->name('assets.index');
+
     // User Management (Admin only)
     Route::resource('users', UserController::class);
     Route::resource('roles', RoleController::class);

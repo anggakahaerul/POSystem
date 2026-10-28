@@ -196,9 +196,9 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="#" class="nav-link" onclick="event.preventDefault();">
+                            <a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Daftar Aset</p>
+                                <p>Daftar Barang</p>
                             </a>
                         </li>
                     </ul>
