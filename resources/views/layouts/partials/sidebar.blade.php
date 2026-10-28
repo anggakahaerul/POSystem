@@ -185,6 +185,25 @@
                 </li>
                 @endif
 
+                <!-- Asset Management -->
+                <li class="nav-item {{ request()->is('assets*') || request()->is('asset-*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ request()->is('assets*') || request()->is('asset-*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>
+                            Asset Management
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="event.preventDefault();">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Daftar Aset</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
                 <!-- User Management -->
                 @php
                     $canAccessUserMgmt = Auth::user() && (
