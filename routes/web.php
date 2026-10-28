@@ -14,6 +14,7 @@ use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\POPaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\RoleController;
@@ -65,6 +66,11 @@ Route::middleware('auth')->group(function () {
     
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Profile Management (Semua User Login)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     // Master Data (Khusus HR dan Administrator)
     Route::middleware('master.data')->group(function () {

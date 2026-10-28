@@ -7,7 +7,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'PO System') }} | @yield('title', 'Dashboard')</title>
+    <title>{{ config('app.name', 'Purchase & Asset Management') }} | @yield('title', 'Dashboard')</title>
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet"

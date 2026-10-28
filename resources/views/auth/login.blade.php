@@ -15,14 +15,14 @@
                          onerror="this.style.display='none'; document.getElementById('textBrandFallback').classList.remove('d-none');">
                     <div id="textBrandFallback" class="d-none">
                         <span class="h3 font-weight-bold text-dark">
-                            <span class="text-primary font-weight-bolder">PO</span> System
+                            <span class="text-primary font-weight-bolder">Purchase &amp;</span> Asset Management
                         </span>
                     </div>
                 </div>
 
                 <div class="mb-2">
                     <span class="badge" style="background-color: #eef2ff; color: #4f46e5; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; letter-spacing: 0.02em;">
-                        Purchase Order &amp; Invoice Portal
+                        Purchase &amp; Asset Management Portal
                     </span>
                 </div>
 
