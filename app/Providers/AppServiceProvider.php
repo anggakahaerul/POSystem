@@ -13,6 +13,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Fallback session & cache driver if app is not yet installed or during installation
+        if (request()->is('install*') || !file_exists(storage_path('installed'))) {
+            config(['session.driver' => 'file']);
+            config(['cache.default' => 'file']);
+        }
+
         $this->app->bind(
             \App\Repositories\Contracts\CategoryRepositoryInterface::class,
             \App\Repositories\Eloquent\CategoryRepository::class

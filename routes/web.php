@@ -8,6 +8,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InstallController;
 use App\Http\Controllers\MasterExportImportController;
 use App\Http\Controllers\PaymentTermController;
 use App\Http\Controllers\PermissionController;
@@ -28,8 +29,20 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Installation Setup Wizard (No Login Required)
+Route::prefix('install')->name('install.')->group(function () {
+    Route::get('/', [InstallController::class, 'index'])->name('index');
+    Route::post('/check-db', [InstallController::class, 'checkDb'])->name('check-db');
+    Route::post('/save-config', [InstallController::class, 'saveConfig'])->name('save-config');
+    Route::post('/run-step', [InstallController::class, 'runStep'])->name('run-step');
+    Route::post('/unlock', [InstallController::class, 'unlock'])->name('unlock');
+});
+
 // Root redirect
 Route::get('/', function () {
+    if (!file_exists(storage_path('installed'))) {
+        return redirect()->route('install.index');
+    }
     return auth()->check() 
         ? redirect()->route('dashboard') 
         : redirect()->route('login');
