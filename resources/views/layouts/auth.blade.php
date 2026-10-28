@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'PO System') }} | @yield('title', 'Login')</title>
+    <title>{{ config('app.name', 'Purchase & Asset Management') }} | @yield('title', 'Login')</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -426,7 +426,7 @@
                 <div class="auth-card-body">
                     <div class="text-center mb-4">
                         <a href="{{ url('/') }}" class="d-inline-block text-decoration-none">
-                            <span class="h3 font-weight-bold text-dark">{{ config('app.name', 'PO System') }}</span>
+                            <span class="h3 font-weight-bold text-dark">{{ config('app.name', 'Purchase & Asset Management') }}</span>
                         </a>
                     </div>
                     @yield('content')

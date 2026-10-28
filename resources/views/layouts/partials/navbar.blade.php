@@ -49,8 +49,8 @@
                 <i class="far fa-user"></i> {{ Auth::user()->name ?? 'Guest' }}
             </a>
             <div class="dropdown-menu dropdown-menu-right">
-                <a href="#" class="dropdown-item">
-                    <i class="fas fa-user mr-2"></i> Profile
+                <a href="{{ route('profile.edit') }}" class="dropdown-item">
+                    <i class="fas fa-user-cog mr-2 text-primary"></i> Profile
                 </a>
                 <div class="dropdown-divider"></div>
                 <form method="POST" action="{{ route('logout') }}" id="logout-form">

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Web Installer | PO System PT. Pangan Lestari</title>
+    <title>Web Installer | Purchase &amp; Asset Management PT. Pangan Lestari</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -661,7 +661,7 @@ Siap memulai instalasi. Klik tombol di bawah untuk menjalankan seluruh proses se
                 startBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menginstalasi...');
                 $('#btnBackToStep2').prop('disabled', true);
 
-                consoleBox.html('=== MEMULAI INSTALASI APLIKASI PO SYSTEM ===\n');
+                consoleBox.html('=== MEMULAI INSTALASI APLIKASI PURCHASE & ASSET MANAGEMENT ===\n');
 
                 function runStepAjax(stepName, badgeId, nextStepCallback) {
                     $(`#badge${badgeId}`).removeClass('badge-secondary').addClass('badge-warning').html('<i class="fas fa-spinner fa-spin"></i> Proses');
