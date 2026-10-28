@@ -142,6 +142,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings/email', [SettingController::class, 'email'])->name('settings.email');
     Route::post('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.email.update');
     Route::post('/settings/email/test', [SettingController::class, 'testEmail'])->name('settings.email.test');
+    Route::get('/settings/utilization', [SettingController::class, 'utilization'])->name('settings.utilization');
+    Route::post('/settings/utilization/run', [SettingController::class, 'runUtilization'])->name('settings.utilization.run');
 });
 
 // Public PO External Approval (Token-based, No Login Required)

@@ -259,6 +259,12 @@
                                 <p>Email & SMTP</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('settings.utilization') }}" class="nav-link {{ request()->routeIs('settings.utilization*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Utilitas Deploy</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endif

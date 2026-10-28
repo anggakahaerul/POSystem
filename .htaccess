@@ -1,36 +1,89 @@
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+# ==============================================================================
+# Jagoan Hosting / cPanel Subdomain Configuration: posystem.pldev.id
+# ==============================================================================
 
+<IfModule mod_negotiation.c>
+    Options -MultiViews -Indexes
+</IfModule>
+
+# Disable Directory Browsing
+Options -Indexes
+
+# ------------------------------------------------------------------------------
+# 1. SECURITY: Block Sensitive Files & Directories
+# ------------------------------------------------------------------------------
+# Deny access to hidden files and directories (e.g. .env, .git, etc.)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Deny access to sensitive files
+<FilesMatch "(^artisan$|\.(env|log|json|lock|xml|yml|yaml|md|sql|sh|bak|dist))$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Deny direct access to internal Laravel directories
+<IfModule mod_alias.c>
+    RedirectMatch 403 ^/(app|bootstrap|config|database|resources|routes|storage/logs|tests|vendor)/
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 2. URL REWRITES & ROUTING FOR SUBDOMAIN
+# ------------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Handle Authorization Header (API, JWT, Sanctum)
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Serve storage files (logos, uploads, etc)
-    RewriteRule ^storage/(.*)$ public/storage/$1 [L]
+    # Force HTTPS (Automatic SSL Redirection for posystem.pldev.id)
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Serve static files from public folder (css, js, images, etc)
-    RewriteCond %{REQUEST_URI} \.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot|map)$ [NC]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^(.*)$ public/$1 [L]
-
-    # Serve assets folder from public
-    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
-
-    # Serve existing files in public folder
-    RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI} !-f
-    RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI} !-d
-    RewriteCond %{DOCUMENT_ROOT}/public/%{REQUEST_URI} -f
-    RewriteRule ^(.*)$ public/$1 [L]
-
-    # Route all other requests to root index.php
-    RewriteCond %{REQUEST_FILENAME} !-f
+    # Redirect Trailing Slashes If Not A Directory
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [L,QSA]
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Route all requests to public/ folder transparently
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
 </IfModule>
 
-# Prevent directory listing
-Options -Indexes
+# ------------------------------------------------------------------------------
+# 3. PERFORMANCE & CACHING (LiteSpeed / Apache)
+# ------------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css
+    AddOutputFilterByType DEFLATE application/xml application/xhtml+xml application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE application/json font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+</IfModule>
