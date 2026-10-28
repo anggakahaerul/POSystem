@@ -16,19 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create Roles and Permissions first
+        // 1. Create Roles and Permissions first
         $this->call(RoleSeeder::class);
 
-        // Create Payment Terms
-        $this->call(PaymentTermSeeder::class);
-
-        // Create Branches
-        $this->call(BranchSeeder::class);
-
-        // Setup Application Users (HR, Tax, Approver, etc.)
-        $this->call(AppUserSetupSeeder::class);
-
-        // Create Users (use firstOrCreate to avoid duplicates)
+        // 2. Create Core System Users (use firstOrCreate to avoid duplicates)
         $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
@@ -72,6 +63,15 @@ class DatabaseSeeder extends Seeder
         if (!$finance->hasRole('Finance')) {
             $finance->assignRole('Finance');
         }
+
+        // 3. Create Master Data (Payment Terms, Branches, Departments, Approval Rules)
+        $this->call(PaymentTermSeeder::class);
+        $this->call(BranchSeeder::class);
+        $this->call(DepartmentSeeder::class);
+        $this->call(ApprovalRuleSeeder::class);
+
+        // 4. Setup Application Users (HR, Tax, Approver, etc.)
+        $this->call(AppUserSetupSeeder::class);
 
         // Create Categories (use firstOrCreate to avoid duplicates)
         $categories = [

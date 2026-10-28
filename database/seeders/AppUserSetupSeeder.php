@@ -31,8 +31,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Manager Approver',
                 'password'      => $password,
-                'department_id' => $deptHrga?->id ?? 3,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptHrga?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         $approver->syncRoles(['Manager', 'Regional Manager', 'General Manager']);
@@ -43,8 +43,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Staff Tax',
                 'password'      => $password,
-                'department_id' => $deptFin?->id ?? 2,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptFin?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         $taxUser->syncRoles(['Tax']);
@@ -55,8 +55,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Staff HR 1',
                 'password'      => $password,
-                'department_id' => $deptHrga?->id ?? 3,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptHrga?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         $hrStaff1->syncRoles(['HR']);
@@ -67,8 +67,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Staff HR 2',
                 'password'      => $password,
-                'department_id' => $deptHrga?->id ?? 3,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptHrga?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         $hrStaff2->syncRoles(['HR']);
@@ -79,8 +79,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Manager HR (L3)',
                 'password'      => $password,
-                'department_id' => $deptHrga?->id ?? 3,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptHrga?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         // Memiliki role HR (untuk fitur lengkap PR/PO) dan Manager (agar diakui sistem sebagai Level 3)
@@ -92,8 +92,8 @@ class AppUserSetupSeeder extends Seeder
             [
                 'name'          => 'Administrator',
                 'password'      => $password,
-                'department_id' => $deptMis?->id ?? 4,
-                'branch_id'     => $branchJkt?->id ?? 1,
+                'department_id' => $deptMis?->id,
+                'branch_id'     => $branchJkt?->id,
             ]
         );
         $adminPangles->syncRoles(['Admin']);
