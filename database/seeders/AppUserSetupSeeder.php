@@ -20,19 +20,19 @@ class AppUserSetupSeeder extends Seeder
         $password = Hash::make('Pangles1234');
 
         $deptHrga = Department::where('code', 'HRGA')->first();
-        $deptFin  = Department::where('code', 'FIN')->first();
-        $deptPur  = Department::where('code', 'PUR')->first();
-        $deptMis  = Department::where('code', 'MIS')->first();
+        $deptFin = Department::where('code', 'FIN')->first();
+        $deptPur = Department::where('code', 'PUR')->first();
+        $deptMis = Department::where('code', 'MIS')->first();
         $branchJkt = Branch::where('code', 'PLJKT')->first();
 
         // 1. User Approver (Email: anggakahaerul20@gmail.com)
         $approver = User::updateOrCreate(
             ['email' => 'anggakahaerul20@gmail.com'],
             [
-                'name'          => 'Manager Approver',
-                'password'      => $password,
+                'name' => 'Manager Approver',
+                'password' => $password,
                 'department_id' => $deptHrga?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         $approver->syncRoles(['Manager', 'Regional Manager', 'General Manager']);
@@ -41,10 +41,10 @@ class AppUserSetupSeeder extends Seeder
         $taxUser = User::updateOrCreate(
             ['email' => 'anggakahaeruloffice@gmail.com'],
             [
-                'name'          => 'Staff Tax',
-                'password'      => $password,
+                'name' => 'Staff Tax',
+                'password' => $password,
                 'department_id' => $deptFin?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         $taxUser->syncRoles(['Tax']);
@@ -53,10 +53,10 @@ class AppUserSetupSeeder extends Seeder
         $hrStaff1 = User::updateOrCreate(
             ['email' => 'hr.staff1@pangles.com'],
             [
-                'name'          => 'Staff HR 1',
-                'password'      => $password,
+                'name' => 'Staff HR 1',
+                'password' => $password,
                 'department_id' => $deptHrga?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         $hrStaff1->syncRoles(['HR']);
@@ -65,10 +65,10 @@ class AppUserSetupSeeder extends Seeder
         $hrStaff2 = User::updateOrCreate(
             ['email' => 'hr.staff2@pangles.com'],
             [
-                'name'          => 'Staff HR 2',
-                'password'      => $password,
+                'name' => 'Staff HR 2',
+                'password' => $password,
                 'department_id' => $deptHrga?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         $hrStaff2->syncRoles(['HR']);
@@ -77,10 +77,10 @@ class AppUserSetupSeeder extends Seeder
         $hrManagerL3 = User::updateOrCreate(
             ['email' => 'hr.manager@pangles.com'],
             [
-                'name'          => 'Manager HR (L3)',
-                'password'      => $password,
+                'name' => 'Manager HR (L3)',
+                'password' => $password,
                 'department_id' => $deptHrga?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         // Memiliki role HR (untuk fitur lengkap PR/PO) dan Manager (agar diakui sistem sebagai Level 3)
@@ -90,10 +90,10 @@ class AppUserSetupSeeder extends Seeder
         $adminPangles = User::updateOrCreate(
             ['email' => 'admin@pangles.com'],
             [
-                'name'          => 'Administrator',
-                'password'      => $password,
+                'name' => 'Administrator',
+                'password' => $password,
                 'department_id' => $deptMis?->id,
-                'branch_id'     => $branchJkt?->id,
+                'branch_id' => $branchJkt?->id,
             ]
         );
         $adminPangles->syncRoles(['Admin']);
@@ -121,7 +121,7 @@ class AppUserSetupSeeder extends Seeder
                 DepartmentBranch::updateOrCreate(
                     [
                         'department_id' => $deptHrga->id,
-                        'branch_id'     => $branchJkt->id,
+                        'branch_id' => $branchJkt->id,
                     ],
                     [
                         'manager_l3_id' => $approver->id,

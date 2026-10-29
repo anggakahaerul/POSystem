@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/panganlestariid/public_html/subdom/posystem.pldev.id/
+    - export DEPLOYPATH=/home/panganle/public_html/subdom/posystem.panganlestari.id/
     - /bin/cp -R * $DEPLOYPATH
