@@ -99,6 +99,14 @@ class PurchaseOrderDetail extends Model
     }
 
     /**
+     * Relationship: Detail has many synced inventory assets (Opsi A)
+     */
+    public function assets()
+    {
+        return $this->hasMany(Asset::class, 'purchase_order_detail_id');
+    }
+
+    /**
      * Get formatted unit price
      */
     public function getFormattedUnitPriceAttribute(): string

@@ -206,6 +206,7 @@
                             <th>Nama Barang & SKU</th>
                             <th style="width: 110px;" class="text-center">Asset</th>
                             <th style="width: 145px;">Qty Diterima</th>
+                            <th style="width: 175px;">Kode Inventaris (Sync)</th>
                             <th style="width: 155px;">No. PO</th>
                             <th style="width: 150px;">No. PR</th>
                             <th style="width: 160px;">Vendor</th>
@@ -294,6 +295,30 @@
                                     </div>
                                 </td>
 
+                                <!-- Kode Inventaris (Auto-Sync Opsi A) -->
+                                <td>
+                                    @if($item->assets && $item->assets->count() > 0)
+                                        @php
+                                            $firstCode = $item->assets->first()->asset_code;
+                                            $lastCode = $item->assets->last()->asset_code;
+                                            $countAssets = $item->assets->count();
+                                        @endphp
+                                        <a href="{{ route('assets.index', ['search' => $item->purchaseOrder->po_number ?? $firstCode]) }}"
+                                           class="badge badge-light border text-primary font-weight-bold px-2 py-1 d-inline-block"
+                                           style="font-family: monospace; font-size: 0.76rem;"
+                                           title="Klik untuk lihat & lengkapi spesifikasi di Daftar Barang Inventaris">
+                                            <i class="fas fa-qrcode mr-1"></i>
+                                            @if($countAssets === 1)
+                                                {{ $firstCode }}
+                                            @else
+                                                {{ $firstCode }} ({{ $countAssets }} Unit)
+                                            @endif
+                                        </a>
+                                    @else
+                                        <span class="text-muted small">-</span>
+                                    @endif
+                                </td>
+
                                 <!-- No. PO -->
                                 <td>
                                     @if($item->purchaseOrder)
@@ -338,7 +363,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="9" class="text-center py-5 text-muted">
                                     <i class="fas fa-inbox fa-3x mb-2 text-muted" style="opacity: 0.4;"></i>
                                     <p class="mb-0 font-weight-bold text-secondary">Belum ada riwayat barang masuk.</p>
                                     <small class="text-muted">Barang yang sudah diterima dari PO akan otomatis tampil di daftar ini.</small>

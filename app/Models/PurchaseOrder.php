@@ -935,14 +935,20 @@ class PurchaseOrder extends Model
         foreach ($items as $detailId => $receivedQty) {
             $detail = $this->details()->find($detailId);
             if ($detail && $receivedQty > 0) {
+                $previousReceivedQty = (int) $detail->received_quantity;
                 // Add to existing received quantity (allow multiple receptions)
-                $newReceivedQty = $detail->received_quantity + $receivedQty;
+                $newReceivedQty = $previousReceivedQty + $receivedQty;
                 // Cap at ordered quantity
                 $newReceivedQty = min($newReceivedQty, $detail->quantity);
-                
+                $deltaQty = max(0, $newReceivedQty - $previousReceivedQty);
+
                 $detail->received_quantity = $newReceivedQty;
                 $detail->received_at = now();
                 $detail->save();
+
+                if ($deltaQty > 0) {
+                    Asset::syncFromPurchaseOrderDetail($detail, $deltaQty, $receiverId);
+                }
             }
         }
 
@@ -983,9 +989,16 @@ class PurchaseOrder extends Model
 
         // Mark all items as fully received
         foreach ($this->details as $detail) {
+            $previousReceivedQty = (int) $detail->received_quantity;
+            $deltaQty = max(0, (int) $detail->quantity - $previousReceivedQty);
+
             $detail->received_quantity = $detail->quantity;
             $detail->received_at = now();
             $detail->save();
+
+            if ($deltaQty > 0) {
+                Asset::syncFromPurchaseOrderDetail($detail, $deltaQty, $receiverId);
+            }
         }
 
         $this->receipt_status = self::RECEIPT_RECEIVED;

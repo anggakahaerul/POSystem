@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApprovalRuleController;
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetTypeController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BranchController;
@@ -148,10 +149,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/po-payments/{payment}/record', [POPaymentController::class, 'recordPayment'])->name('po-payments.record');
     Route::delete('/po-payments/{payment}', [POPaymentController::class, 'destroy'])->name('po-payments.destroy');
 
-    // Asset Management (Daftar Barang - UI Mockup)
-    Route::get('/asset-management', function () {
-        return view('assets.index');
-    })->name('assets.index');
+    // Asset Management (Daftar Barang Inventaris - Terintegrasi Opsi A dari Penerimaan Barang PO)
+    Route::get('/asset-management', [AssetController::class, 'index'])->name('assets.index');
+    Route::post('/asset-management/reset-all-qr', [AssetController::class, 'resetAllQr'])->name('assets.reset-all-qr');
+    Route::post('/asset-management/{code}/generate-qr', [AssetController::class, 'generateQr'])->name('assets.generate-qr');
+    Route::post('/asset-management/{code}/reset-qr', [AssetController::class, 'resetQr'])->name('assets.reset-qr');
+    Route::put('/asset-management/{code}', [AssetController::class, 'update'])->name('assets.update');
+    Route::delete('/asset-management/{code}', [AssetController::class, 'destroy'])->name('assets.destroy');
     Route::get('/daftar-barang', function () {
         return redirect()->route('assets.index');
     });
