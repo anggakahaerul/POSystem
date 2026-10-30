@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
 use App\Models\AssetType;
 use App\Models\Branch;
 use App\Models\PurchaseOrder;
@@ -16,6 +17,9 @@ class GoodsReceiptController extends Controller
      */
     public function index(Request $request)
     {
+        // Opsi A: Pastikan seluruh item diterima sudah tersinkron ke Inventaris Aset
+        Asset::syncAllUnregisteredReceivedPoItems();
+
         $search = $request->get('search');
         $branchId = $request->get('branch_id');
         $asset = $request->get('asset');
@@ -31,6 +35,7 @@ class GoodsReceiptController extends Controller
             'purchaseOrder.vendor',
             'purchaseOrder.branch',
             'purchaseOrder.purchaseRequest',
+            'assets',
         ])
         ->where('received_quantity', '>', 0)
         ->whereHas('purchaseOrder', function ($q) {

@@ -733,14 +733,14 @@ class PurchaseOrderController extends Controller
             }
 
             $purchaseOrder->receiveItems($itemsToReceive, Auth::id());
-            $message = 'Penerimaan barang berhasil dicatat.';
+            $message = 'Penerimaan barang berhasil dicatat dan unit otomatis disinkronkan ke Daftar Barang Inventaris.';
 
         } elseif ($type === 'partial') {
             $purchaseOrder->partialReceive(Auth::id());
             $message = 'Penerimaan barang parsial berhasil dicatat.';
         } else {
             $purchaseOrder->receiveGoods(Auth::id());
-            $message = 'Barang berhasil diterima seluruhnya.';
+            $message = 'Barang berhasil diterima seluruhnya dan otomatis masuk ke Daftar Barang Inventaris.';
         }
 
         return redirect()->route('purchase-orders.show', $purchaseOrder->id)
