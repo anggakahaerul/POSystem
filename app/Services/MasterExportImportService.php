@@ -149,62 +149,12 @@ class MasterExportImportService
             abort(404, 'Master type tidak ditemukan');
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle(substr($config['title'], 0, 31));
-
-        // Header
-        $headers = $config['headers'];
-        $colCount = count($headers);
-
-        for ($i = 0; $i < $colCount; $i++) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
-            $sheet->setCellValue("{$colLetter}1", $headers[$i]);
-        }
-
-        // Style header row
-        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCount);
-        $headerRange = "A1:{$lastCol}1";
-        $sheet->getStyle($headerRange)->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '1E293B'], // Dark corporate slate
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ],
-        ]);
-        $sheet->getRowDimension(1)->setRowHeight(28);
-
-        // Add sample rows
-        if (!empty($config['sample'])) {
-            $rowIndex = 2;
-            foreach ($config['sample'] as $row) {
-                for ($j = 0; $j < count($row); $j++) {
-                    $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($j + 1);
-                    $sheet->setCellValue("{$colLetter}{$rowIndex}", $row[$j]);
-                }
-                $rowIndex++;
-            }
-        }
-
-        // Auto width
-        for ($i = 1; $i <= $colCount; $i++) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
-            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
-        }
-
-        $filename = $config['template_filename'];
-
-        return response()->streamDownload(function () use ($spreadsheet) {
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Cache-Control' => 'max-age=0',
-        ]);
+        return $this->streamExcelDownload(
+            $config['template_filename'],
+            substr($config['title'], 0, 31),
+            $config['headers'],
+            $config['sample'] ?? []
+        );
     }
 
     /**
@@ -217,59 +167,101 @@ class MasterExportImportService
             abort(404, 'Master type tidak ditemukan');
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle(substr($config['title'], 0, 31));
-
-        $headers = $config['headers'];
-        $colCount = count($headers);
-
-        for ($i = 0; $i < $colCount; $i++) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
-            $sheet->setCellValue("{$colLetter}1", $headers[$i]);
-        }
-
-        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCount);
-        $headerRange = "A1:{$lastCol}1";
-        $sheet->getStyle($headerRange)->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '1E293B'],
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ],
-        ]);
-        $sheet->getRowDimension(1)->setRowHeight(28);
-
-        // Populate records
         $dataRows = $this->fetchDataRows($type);
-        $rowIndex = 2;
 
-        foreach ($dataRows as $row) {
-            for ($j = 0; $j < count($row); $j++) {
-                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($j + 1);
-                $sheet->setCellValue("{$colLetter}{$rowIndex}", $row[$j]);
+        return $this->streamExcelDownload(
+            $config['filename'],
+            substr($config['title'], 0, 31),
+            $config['headers'],
+            $dataRows
+        );
+    }
+
+    /**
+     * Generate Excel binary (via PhpSpreadsheet if available, or pure-PHP native XLSX fallback)
+     * and stream it safely to the browser without failing on missing ext-zip or restricted /tmp.
+     */
+    protected function streamExcelDownload(string $filename, string $sheetTitle, array $headers, array $dataRows): StreamedResponse
+    {
+        $xlsxBinary = null;
+
+        if (class_exists(Spreadsheet::class) && class_exists(Xlsx::class) && class_exists(\ZipArchive::class)) {
+            try {
+                $spreadsheet = new Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->setTitle($sheetTitle ?: 'Sheet1');
+
+                $colCount = count($headers);
+                for ($i = 0; $i < $colCount; $i++) {
+                    $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+                    $sheet->setCellValue("{$colLetter}1", $headers[$i]);
+                }
+
+                $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCount);
+                $headerRange = "A1:{$lastCol}1";
+                $sheet->getStyle($headerRange)->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '1E293B'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ],
+                ]);
+                $sheet->getRowDimension(1)->setRowHeight(28);
+
+                $rowIndex = 2;
+                foreach ($dataRows as $row) {
+                    $rowValues = array_values((array) $row);
+                    for ($j = 0; $j < count($rowValues); $j++) {
+                        $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($j + 1);
+                        $sheet->setCellValue("{$colLetter}{$rowIndex}", $rowValues[$j]);
+                    }
+                    $rowIndex++;
+                }
+
+                for ($i = 1; $i <= $colCount; $i++) {
+                    $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+                    $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+                }
+
+                $tempDir = storage_path('app/temp');
+                if (!is_dir($tempDir)) {
+                    @mkdir($tempDir, 0775, true);
+                }
+                if (!is_dir($tempDir) || !is_writable($tempDir)) {
+                    $tempDir = sys_get_temp_dir();
+                }
+
+                $tempFile = rtrim($tempDir, '/\\') . DIRECTORY_SEPARATOR . 'xlsx_' . uniqid('', true) . '.xlsx';
+                $writer = new Xlsx($spreadsheet);
+                $writer->save($tempFile);
+
+                if (is_file($tempFile) && filesize($tempFile) > 0) {
+                    $xlsxBinary = file_get_contents($tempFile);
+                }
+                @unlink($tempFile);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('PhpSpreadsheet export fallback triggered: ' . $e->getMessage());
+                $xlsxBinary = null;
             }
-            $rowIndex++;
         }
 
-        // Auto width
-        for ($i = 1; $i <= $colCount; $i++) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
-            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        if (!$xlsxBinary) {
+            $xlsxBinary = $this->buildNativeXlsxBinary($sheetTitle ?: 'Sheet1', $headers, $dataRows);
         }
 
-        $filename = $config['filename'];
-
-        return response()->streamDownload(function () use ($spreadsheet) {
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
+        return response()->streamDownload(function () use ($xlsxBinary) {
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+            echo $xlsxBinary;
         }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Cache-Control' => 'max-age=0',
+            'Cache-Control' => 'max-age=0, no-cache, no-store, must-revalidate',
+            'Pragma' => 'public',
         ]);
     }
 
